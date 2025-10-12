@@ -164,6 +164,116 @@ const createListComment = async (req, res) => {
     return successResponse(res, comment, 'Comment created successfully', 201);
 }
 
+// Add item to list
+const addListItem = async (req, res) => {
+    const { externalId, title, category, position, cachedData } = req.body;
+    const list = req.resource;
+
+    const existingItem = list.items.find(item => item.externalId === externalId);
+    if (existingItem) {
+        return errorResponse(res, 'Item already exists in the list', 400);
+    }
+
+    if (position < 1 || position > 10) {
+        return errorResponse(res, 'Position must be between 1 and 10', 400);
+    }
+
+    if (list.items.length >= 10) {
+        return errorResponse(res, 'List is full (max 10 items)', 400);
+    }
+
+    if (category !== list.category) {
+        return errorResponse(res, 'Item category must match list category', 400);
+    }
+
+    list.items.push({
+        externalId,
+        title,
+        category,
+        position,
+        cachedData: cachedData || {}
+    });
+
+    list.items.forEach(item => {
+        if (item.position >= position) item.position += 1;
+    });
+
+    list.items.sort((a, b) => a.position - b.position);
+
+    await list.save();
+
+    return successResponse(res, list, 'Item added successfully', 201);
+};
+
+// Update item in list
+const updateListItem = async (req, res) => {
+    const { itemId } = req.params;
+    const { position, cachedData } = req.body;
+    const list = req.resource;
+
+    const itemIndex = list.items.findIndex(item => item.externalId === itemId);
+    if (itemIndex === -1) {
+        return errorResponse(res, 'Item not found in the list', 404);
+    }
+
+    if (position !== undefined) {
+        if (position < 1 || position > 10) {
+            return errorResponse(res, 'Position must be between 1 and 10', 400);
+        }
+        list.items[itemIndex].position = position;
+    }
+
+    if (cachedData) {
+        list.items[itemIndex].cachedData = {
+            ...list.items[itemIndex].cachedData,
+            ...cachedData
+        };
+    }
+
+    list.items.sort((a, b) => a.position - b.position);
+    await list.save();
+    return successResponse(res, list, 'Item updated successfully', 200);
+}
+
+// Remove item from list
+const removeListItem = async (req, res) => {
+    const { itemId } = req.params;
+    const list = req.resource;
+
+    const itemIndex = list.items.findIndex(item => item.externalId === itemId);
+    if (itemIndex === -1) {
+        return errorResponse(res, 'Item not found in the list', 404);
+    }
+
+    list.items
+        .filter(item => item.externalId !== itemId)
+        .map((item, index) => ({ ...item, position: index + 1 }));
+
+    await list.save();
+    return successResponse(res, list, 'Item removed successfully', 200);
+}
+
+// Reorder items in list
+const reorderListItems = async (req, res) => {
+    const { items } = req.body; // Array of { externalId, position }
+    const list = req.resource;
+
+    if (!Array.isArray(items)) {
+        return errorResponse(res, 'Items must be an array', 400);
+    }
+
+    items.forEach(({ externalId, position }) => {
+        const item = list.items.find(item => item.externalId === externalId);
+        if (item) {
+            item.position = position;
+        }
+    });
+
+    list.items.sort((a, b) => a.position - b.position);
+    await list.save();
+    return successResponse(res, list, 'Items reordered successfully', 200);
+}
+
 module.exports = {
     getUserLists,
     getPublicLists,
@@ -172,5 +282,9 @@ module.exports = {
     updateList,
     deleteList,
     getListComments,
-    createListComment
+    createListComment,
+    addListItem,
+    updateListItem,
+    removeListItem,
+    reorderListItems
 };

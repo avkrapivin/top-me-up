@@ -13,7 +13,11 @@ const {
     updateList,
     deleteList,
     getListComments,
-    createListComment
+    createListComment,
+    addListItem,
+    updateListItem,
+    removeListItem,
+    reorderListItems
 } = require('../controllers/listController');
 
 const router = express.Router();
@@ -32,5 +36,11 @@ router.post('/', validateList, asyncHandler(createList));
 router.put('/:id', loadList, requireOwnership(), validateListUpdate, asyncHandler(updateList));
 router.delete('/:id', loadList, requireOwnership(), asyncHandler(deleteList));
 router.post('/:id/comments', loadList, authLimiter, validateComment, asyncHandler(createListComment));
+
+router.post('/:id/items', loadList, requireOwnership(), asyncHandler(addListItem));
+router.put('/:id/items/:itemId', loadList, requireOwnership(), asyncHandler(updateListItem));
+router.delete('/:id/items/:itemId', loadList, requireOwnership(), asyncHandler(removeListItem));
+router.put('/:id/items/reorder', loadList, requireOwnership(), asyncHandler(reorderListItems));
+
 
 module.exports = router;
