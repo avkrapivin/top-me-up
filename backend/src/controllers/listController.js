@@ -1,0 +1,176 @@
+const { List, User, Comment } = require('../models');
+const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHelper');
+const { createPagination, createFilter, createSort } = require('../utils/paginationHelper');
+
+// Get lists of user
+const getUserLists = async (req, res) => {
+    const { page = 1, limit = 10, category, isPublic } = req.query;
+    const userId = req.user._id;
+
+    const filter = createFilter({ userId }, { category, isPublic });
+    const sort = createSort('createdAt', 'desc');
+
+    const lists = await List.find(filter)
+        .sort(sort)
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .populate('user', 'displayName');
+
+    const total = await List.countDocuments(filter);
+    const pagination = createPagination(page, limit, total);
+
+    return paginatedResponse(res, lists, pagination);
+};
+
+// Get public lists
+const getPublicLists = async (req, res) => {
+    const { page = 1, limit = 10, category, sortBy = 'createdAt' } = req.query;
+
+    const filter = createFilter({ isPublic: true }, { category });
+    const sort = createSort(sortBy, 'desc');
+
+    const lists = await List.find(filter)
+        .sort(sort)
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .populate('user', 'displayName');
+
+    const total = await List.countDocuments(filter);
+    const pagination = createPagination(page, limit, total);
+
+    return paginatedResponse(res, lists, pagination);
+};
+
+// Create new list
+const createList = async (req, res) => {
+    const { title, category, description, isPublic = false } = req.body;
+    const userId = req.user._id;
+
+    const list = new List({
+        userId,
+        title,
+        category,
+        description,
+        isPublic,
+        items: []
+    });
+
+    await list.save();
+
+    // Update user's statistics
+    await User.findByIdAndUpdate(userId, {
+        $inc: { 'stats.listsCreated': 1 }
+    });
+
+    return successResponse(res, list, 'List created successfully', 201);
+};
+
+// Get list by ID
+const getListById = async (req, res) => {
+    const list = req.resource;
+
+    // Check if list is public or owned by the user
+    const uid = req.auth?.uid;
+    if (!list.isPublic && uid) {
+        const user = await User.findOne({ firebaseUid: uid });
+        if (!user || list.userId.toString() !== user._id.toString()) {
+            return errorResponse(res, 'Not authorized to access this list', 403);
+        }
+    }
+
+    // Increment views count
+    await list.incrementViews();
+
+    return successResponse(res, list);
+};
+
+// Update list
+const updateList = async (req, res) => {
+    const { title, description, isPublic } = req.body;
+    const list = req.resource;
+
+    if (title) list.title = title;
+    if (description !== undefined) list.description = description;
+    if (isPublic !== undefined) list.isPublic = isPublic;
+
+    await list.save();
+
+    return successResponse(res, list, 'List updated successfully');
+};
+
+// Delete list
+const deleteList = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+               
+    await List.findByIdAndDelete(list._id);
+
+    // Update user's statistics
+    await User.findByIdAndUpdate(userId, {
+        $inc: { 'stats.listsCreated': -1 }
+    });
+
+    return successResponse(res, null, 'List deleted successfully');
+};
+
+// Get comments for a list
+const getListComments = async (req, res) => {
+    const { id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    const comments = await Comment.find({
+        listId: id,
+        isDeleted: false,
+        parentCommentId: null
+    })
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .populate('user', 'displayName')
+        .populate('replies');
+
+    const total = await Comment.countDocuments({
+        listId: id,
+        isDeleted: false,
+        parentCommentId: null
+    });
+
+    const pagination = createPagination(page, limit, total);
+
+    return paginatedResponse(res, comments, pagination);
+};
+
+// Create a new comment for a list
+const createListComment = async (req, res) => {
+    const { id } = req.params;
+    const { content, parentCommentId } = req.body;
+    const userId = req.user._id;
+
+    const list = req.resource;
+
+    const comment = new Comment({
+        listId: id,
+        userId,
+        content,
+        parentCommentId: parentCommentId || null
+    });
+
+    await comment.save();
+
+    await List.findByIdAndUpdate(id, {
+        $inc: { commentsCount: 1 }
+    });
+
+    return successResponse(res, comment, 'Comment created successfully', 201);
+}
+
+module.exports = {
+    getUserLists,
+    getPublicLists,
+    createList,
+    getListById,
+    updateList,
+    deleteList,
+    getListComments,
+    createListComment
+};
