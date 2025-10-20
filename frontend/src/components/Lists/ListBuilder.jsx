@@ -3,7 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
-import { useList, useCreateList, useUpdateList, useDeleteList, useReorderListItems } from '../../hooks/useListApi';
+import {
+    useList,
+    useCreateList,
+    useUpdateList,
+    useAddListItem,
+    useRemoveListItem,
+    useDeleteList,
+    useReorderListItems
+} from '../../hooks/useListApi';
 import CategorySelector from './CategorySelector';
 import SearchBox from '../Search/SearchBox';
 import DraggableListItem from './DraggableListItem';
@@ -53,7 +61,7 @@ function ListBuilder() {
             alert('Maximum 10 items allowed');
             return;
         }
-        
+
         if (items.some(i => i.externalId === item.externalId)) {
             alert('This item is already in the list');
             return;
@@ -65,7 +73,7 @@ function ListBuilder() {
             position: items.length + 1,
             cachedData: {
                 posterUrl: item.posterUrl,
-                releaseDate: item.releaseDate,
+                year: item.year,
                 ...(item.artist && { artist: item.artist }),
                 ...(item.genres && { genres: item.genres }),
             },
@@ -206,7 +214,7 @@ function ListBuilder() {
                             disabled={createListMutation.isPending || updateListMutation.isPending}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition disabled:opacity-50"
                         >
-                            {isEditMode ? 'Save Changes' : 'Create List'}
+                            {isEditMode ? 'Save Changes' : 'Save List'}
                         </button>
                         {isEditMode && (
                             <button
@@ -294,45 +302,39 @@ function ListBuilder() {
                 </div>
 
                 {/* List Items */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                         Your Top 10 ({items.length}/10)
                     </h3>
 
-                    {items.length === 0 ? (
-                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                            No items yet. Search and add content above!
-                        </p>
-                    ) : (
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={items.map(item => item.externalId)}
+                            strategy={verticalListSortingStrategy}
                         >
-                            <SortableContext
-                                items={items.map(item => item.externalId)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="space-y-4">
-                                    {items.map((item, index) => (
-                                        <DraggableListItem
-                                            key={item.externalId}
-                                            item={item}
-                                            rank={index + 1}
-                                            onRemove={handleRemoveItem}
-                                        />
-                                    ))}
+                            <div className="grid grid-cols-2 gap-6">
+                                {items.map((item, index) => (
+                                    <DraggableListItem
+                                        key={item.externalId}
+                                        item={item}
+                                        rank={index + 1}
+                                        onRemove={handleRemoveItem}
+                                    />
+                                ))}
 
-                                    {/* Empty slots */}
-                                    {Array(10 - items.length)
-                                        .fill(null)
-                                        .map((_, index) => (
-                                            <EmptySlot key={`empty-${index}`} rank={items.length + index + 1} />
-                                        ))}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    )}
+                                {/* Empty slots */}
+                                {Array(10 - items.length)
+                                    .fill(null)
+                                    .map((_, index) => (
+                                        <EmptySlot key={`empty-${index}`} rank={items.length + index + 1} />
+                                    ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                 </div>
             </div>
         </div>

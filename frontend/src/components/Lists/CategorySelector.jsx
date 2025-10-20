@@ -17,10 +17,10 @@ function CategorySelector({ selected, onChange, disabled = false }) {
                     className={`
                         px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
                         ${selected === category.id
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            ? 'bg-blue-600 !text-white shadow-md'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                         }
-                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        ${disabled ? 'cursor-not-allowed opacity-100' : 'cursor-pointer'}
                     `}
                 >
                     {category.label}

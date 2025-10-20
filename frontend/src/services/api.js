@@ -31,9 +31,18 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Handle unauthorized error
-            useAuthStore.getState().logout();
-            window.location.href = '/';
+            const url = error.config?.url || '';
+
+            const isExternalApiError = url.includes('/search/') ||
+                                    url.includes('/movies') ||
+                                    url.includes('/music') ||
+                                    url.includes('/games');
+
+            if (!isExternalApiError) {
+                // Handle unauthorized error
+                useAuthStore.getState().logout();
+                window.location.href = '/';
+            }
         }
         return Promise.reject(error);
     }

@@ -8,7 +8,7 @@ class BaseExternalService {
     constructor(config, serviceName) {
         this.config = config;
         this.serviceName = serviceName;
-        this.baseURL = config.baseURL;
+        this.baseURL = config.baseUrl;
         this.timeout = config.timeout || 10000;
 
         this.client = axios.create({
@@ -22,7 +22,10 @@ class BaseExternalService {
     }
 
     async makeRequest(endpoint, params = {}, useCache = true) {
-        const cacheKey = this._generateCacheKey(endpoint, params);
+        const apiKeyParam = this.serviceName === 'RAWG' ? 'key' : 'api_key';
+        const finalParams = { [apiKeyParam]: this.config.apiKey, ...params };
+
+        const cacheKey = this._generateCacheKey(endpoint, finalParams);
 
         // Check cache
         if (useCache) {
@@ -36,10 +39,10 @@ class BaseExternalService {
         const startTime = Date.now();
 
         try {
-            apiLogger.request(this.serviceName, endpoint, params);
+            apiLogger.request(this.serviceName, endpoint, finalParams);
 
             const response = await retry(async () => {
-                return await this.client.get(endpoint, { params });
+                return await this.client.get(endpoint, { params: finalParams });
             });
 
             const duration = Date.now() - startTime;

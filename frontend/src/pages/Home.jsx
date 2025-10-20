@@ -79,11 +79,6 @@ function Home() {
                     </div>
                 )}
 
-                {health && (
-                    <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-4 py-2 rounded">
-                        API Status: {health.message}
-                    </div>
-                )}
                 {error && (
                     <div className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-4 py-2 rounded">
                         API Connection Error

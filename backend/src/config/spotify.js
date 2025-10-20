@@ -5,6 +5,7 @@ module.exports = {
     authUrl: 'https://accounts.spotify.com/token',
     timeout: 10000,
     defaultLanguage: 'en-US',
+    defaultMarket: 'US',
     endpoints: {
         search: '/search',
         album: '/albums',
