@@ -1,10 +1,19 @@
 import PropTypes from 'prop-types';
 
-function EmptySlot({ rank, isDropTarget = false }) {
+function EmptySlot({ rank, isDropTarget = false, category = 'movies' }) {
+    const getSlotDimensions = () => {
+        if (category === 'music') {
+            return { width: '64px', height: '64px' };
+        }
+        return { width: '64px', height: '96px' };
+    };
+
+    const slotDimensions = getSlotDimensions();
+
     return (
         <div className="flex items-start gap-2 p-2">
             <div
-                style={{ width: '64px', height: '96px' }}
+                style={slotDimensions}
                 className={`
                     rounded flex-shrink-0 transition-all duration-200 relative
                     ${isDropTarget
@@ -22,6 +31,7 @@ function EmptySlot({ rank, isDropTarget = false }) {
 EmptySlot.propTypes = {
     rank: PropTypes.number,
     isDropTarget: PropTypes.bool,
+    category: PropTypes.oneOf(['movies', 'music', 'games']),
 };
 
 export default EmptySlot;

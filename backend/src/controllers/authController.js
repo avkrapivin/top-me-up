@@ -22,18 +22,23 @@ const createOrUpdateuser = async (req, res) => {
         let user = await User.findOne({ firebaseUid });
 
         if (user) {
-            // Update user
-            user.email = email;
             user.displayName = displayName;
             await user.save();
         } else {
-            // Create user
-            user = new User({
-                firebaseUid,
-                email,
-                displayName
-            });
-            await user.save();
+            const existingEmailUser = await User.findOne({ email });
+
+            if (existingEmailUser) {
+                existingEmailUser.firebaseUid = firebaseUid;
+                existingEmailUser.displayName = displayName;
+                user = await existingEmailUser.save();
+            } else {
+                user = new User({
+                    firebaseUid,
+                    email,
+                    displayName
+                });
+                await user.save();
+            }
         }
 
         res.json({
@@ -41,7 +46,7 @@ const createOrUpdateuser = async (req, res) => {
             user: user.toPublicJSON()
         });
     } catch (error) {
-        console.error('Auth cuntroller error:', error);
+        console.error('Auth controller error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to create or update user',

@@ -1,31 +1,48 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
 import { useSearchContent } from "../../hooks/useSearchApi";
 import PropTypes from 'prop-types';
+
+const useDebouncedValue = (value, delay = 400) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+}
 
 function SearchBox({ category, onSelectItem, placeholder = 'Search...' }) {
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
-    const [debouncedQuery, setDebouncedQuery] = useState('');
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedQuery(query);
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [query]);
+    const debouncedQuery = useDebouncedValue(query, 450);
 
     const { data, isLoading, error } = useSearchContent(
         category,
         debouncedQuery,
         { limit: 10 },
-        { enabled: debouncedQuery.length >= 2 }
+        {
+            enabled: debouncedQuery.length >= 2,
+            staleTime: 60 * 1000,
+            keepPreviousData: true,
+            refetchOnWindowFocus: false,
+            retry: 0,
+        }
     );
 
     const handleInputChange = (e) => {
         const value = e.target.value;
-        setQuery(value);
-        setIsOpen(value.length >= 2);
+        startTransition(() => {
+            setQuery(value);
+            setIsOpen(value.length >= 2);
+        });
     };
 
     const handleSelectItem = useCallback((item) => {
@@ -92,9 +109,14 @@ function SearchBox({ category, onSelectItem, placeholder = 'Search...' }) {
                                         src={item.posterUrl}
                                         alt={item.title}
                                         className="w-12 h-16 object-cover rounded flex-shrink-0"
+                                        style={category === 'music' ? { width: '48px', height: '48px' } : { width: '48px', height: '72px' }}
+                                        loading="lazy"
                                     />
                                 ) : (
-                                    <div className="w-12 h-16 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">
+                                    <div
+                                        className="bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0"
+                                        style={category === 'music' ? { width: '48px', height: '48px' } : { width: '48px', height: '72px' }}
+                                    >
                                         No image
                                     </div>
                                 )}

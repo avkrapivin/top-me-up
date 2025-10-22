@@ -5,15 +5,43 @@ const listSchema = Joi.object({
     title: Joi.string().required().trim().max(100),
     category: Joi.string().valid('movies', 'music', 'games').required(),
     description: Joi.string().max(500).allow(''),
-    isPublic: Joi.boolean().default(false)
+    isPublic: Joi.boolean().default(false),
+    items: Joi.array().items(Joi.object({
+        externalId: Joi.string().required(),
+        title: Joi.string().required().trim().max(200),
+        position: Joi.number().integer().min(1).max(10).required(),
+        category: Joi.string().valid('movies', 'music', 'games').required(),
+        cachedData: Joi.object({
+            posterUrl: Joi.string().uri().allow(''),
+            year: Joi.number().integer().min(1900),
+            artist: Joi.string().allow('').optional(),
+            genres: Joi.array().items(Joi.string().trim()),
+            rating: Joi.number().min(0).max(10),
+            description: Joi.string().max(1000).allow('')
+        }).optional()
+    })).default([])
 });
 
 const listUpdateSchema = Joi.object({
     title: Joi.string().trim().max(100).optional(),
     category: Joi.string().valid('movies', 'music', 'games').optional(),
     description: Joi.string().max(500).allow('').optional(),
-    isPublic: Joi.boolean().optional()
-})
+    isPublic: Joi.boolean().optional(),
+    items: Joi.array().items(Joi.object({
+        externalId: Joi.string().required(),
+        title: Joi.string().required().trim().max(200),
+        position: Joi.number().integer().min(1).max(10).required(),
+        category: Joi.string().valid('movies', 'music', 'games').required(),
+        cachedData: Joi.object({
+            posterUrl: Joi.string().uri().allow(''),
+            year: Joi.number().integer().min(1900),
+            artist: Joi.string().allow('').optional(),
+            genres: Joi.array().items(Joi.string().trim()),
+            rating: Joi.number().min(0).max(10),
+            description: Joi.string().max(1000).allow('')
+        }).optional()
+    })).optional()
+});
 
 const itemSchema = Joi.object({
     externalId: Joi.string().required(),
@@ -23,6 +51,7 @@ const itemSchema = Joi.object({
     cachedData: Joi.object({
         posterUrl: Joi.string().uri().allow(''),
         year: Joi.number().integer().min(1900),
+        artist: Joi.string().allow('').optional(),
         genres: Joi.array().items(Joi.string().trim()),
         rating: Joi.number().min(0).max(10),
         description: Joi.string().max(1000).allow('')

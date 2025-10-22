@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { auth } from '../config/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -12,38 +13,53 @@ const api = axios.create({
 });
 
 // Request interceptor
-api.interceptors.request.use(
-    (config) => {
-        // Add auth token if available
-        const token = useAuthStore.getState().token;
-        if (token) {
+api.interceptors.request.use(async (config) => {
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            const token = await user.getIdToken();
             config.headers.Authorization = `Bearer ${token}`;
+        } catch (error) {
+            console.error('Failed to get token:', error);
+            delete config.headers.Authorization;
         }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+    } else {
+        delete config.headers.Authorization;
     }
-);
+    return config;
+});
 
 // Response interceptor
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            const url = error.config?.url || '';
+    async (error) => {
+        const originalRequest = error.config;
+        const status = error.response?.status;
+        const message = error.response?.data?.error || error.response?.data?.message || '';
 
-            const isExternalApiError = url.includes('/search/') ||
-                                    url.includes('/movies') ||
-                                    url.includes('/music') ||
-                                    url.includes('/games');
+        const isTokenExpired = status === 401 && (
+            message.includes('id-token-expired') || 
+            message.includes('expired') ||
+            message.includes('invalid token')
+        );
 
-            if (!isExternalApiError) {
-                // Handle unauthorized error
-                useAuthStore.getState().logout();
-                window.location.href = '/';
+        if (isTokenExpired && !originalRequest._retry) {
+            originalRequest._retry = true;
+            
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    const freshToken = await user.getIdToken(true); 
+                    originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+                    
+                    return api(originalRequest);
+                } catch (refreshError) {
+                    console.error('Failed to refresh token:', refreshError);
+                    return Promise.reject(error);
+                }
             }
         }
+
         return Promise.reject(error);
     }
 );

@@ -32,6 +32,7 @@ const getFirebaseErrorMessage = (error) => {
 };
 
 export const useAuthStore = create(
+
     persist(
         (set, get) => ({
             user: null,
@@ -172,10 +173,36 @@ export const useAuthStore = create(
             initializeAuth: () => {
                 if (get().isInitialized) return;
 
+                let refreshTimerId = null;
+
+                const startTokenAutoRefresh = () => {
+                    clearInterval(refreshTimerId);
+                    refreshTimerId = setInterval(async () => {
+                        try {
+                            const user = auth.currentUser;
+                            if (user) {
+                                const token = await user.getIdToken(true);
+                                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                                get().updateToken(token);
+                                console.log('Token refreshed automatically');
+                            }
+                        } catch (e) {
+                            console.error('Auto-refresh token failed:', e);
+                        }
+                    }, 50 * 60 * 1000); // Refresh every 50 minutes
+                };
+
+                const stopTokenAutoRefresh = () => {
+                    clearInterval(refreshTimerId);
+                    refreshTimerId = null;
+                }
+
                 const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
                     if (firebaseUser) {
                         try {
                             const token = await firebaseUser.getIdToken();
+
+                            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
                             set({
                                 user: {
@@ -188,6 +215,18 @@ export const useAuthStore = create(
                                 loading: false,
                                 isInitialized: true
                             });
+
+                            startTokenAutoRefresh();
+
+                            try {
+                                await api.post('/auth/user', {
+                                    firebaseUid: firebaseUser.uid,
+                                    email: firebaseUser.email,
+                                    displayName: firebaseUser.displayName
+                                });
+                            } catch (backendError) {
+                                console.error('Backend sync failded (non-critical):', backendError);
+                            }
                         } catch (error) {
                             console.error('Error getting token:', error);
                             set({
@@ -198,6 +237,7 @@ export const useAuthStore = create(
                             });
                         }
                     } else {
+                        stopTokenAutoRefresh();
                         set({
                             user: null,
                             token: null,
@@ -210,8 +250,10 @@ export const useAuthStore = create(
                 const unsubscribeToken = onIdTokenChanged(auth, async (firebaseUser) => {
                     if (firebaseUser) {
                         try {
-                            const token = await firebaseUser.getIdToken();
+                            const token = await firebaseUser.getIdToken(true);
+                            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                             get().updateToken(token);
+                            console.log('Token refreshed automatically');
                         } catch (error) {
                             console.error('Error updating token:', error);
                         }
@@ -221,6 +263,7 @@ export const useAuthStore = create(
                 return () => {
                     unsubscribeAuth();
                     unsubscribeToken();
+                    stopTokenAutoRefresh();
                 };
             }
         }),

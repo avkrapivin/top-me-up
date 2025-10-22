@@ -1,3 +1,4 @@
+const axios = require('axios');
 const BaseExternalService = require("./baseService");
 const spotifyConfig = require("../../config/spotify");
 const { validateSpotifyResponse } = require("../../utils/apiValidator");
@@ -16,37 +17,70 @@ class SpotifyService extends BaseExternalService {
         }
 
         try {
-            const response = await this.client.post(
-                this.config.authUrl,
-                'grant_type=client_credentials',
-                {
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': `Basic ${Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')}`
-                    }
+            console.log('Attempting Spotify auth with:', {
+                url: this.config.authUrl,
+                clientId: this.config.clientId,
+                hasSecret: !!this.config.clientSecret
+            });
+
+            const authClient = axios.create({
+                timeout: this.timeout,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Basic ${Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')}`
                 }
+            });
+
+            const response = await authClient.post(
+                this.config.authUrl,
+                'grant_type=client_credentials'
             );
+
+            console.log('Spotify auth successful, token expires in:', response.data.expires_in);
 
             this.accessToken = response.data.access_token;
             this.tokenExpiry = Date.now() + (response.data.expires_in * 1000);
 
             return this.accessToken;
         } catch (error) {
-            throw new AuthenticationError('Spotify', 'Failed to get access token');
+            console.error('Spotify auth failed:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                url: error.config?.url,
+                method: error.config?.method
+            });
+            console.error('Spotify service error:', error.response?.data || error.message);
+            console.error('Spotify config:', { 
+                clientId: this.config.clientId ? 'SET' : 'NOT SET',
+                clientSecret: this.config.clientSecret ? 'SET' : 'NOT SET',
+                authUrl: this.config.authUrl
+            });
+            throw new AuthenticationError('Spotify', `Failed to get access token: ${error.response?.data?.error_description || error.message}`);
         }
     }
 
     async makeRequest(endpoint, params = {}, useCache = true) {
         const token = await this.getAccessToken();
 
-        const requestConfig = {
-            params,
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const originalGet = this.client.get;
+
+        this.client.get = function(url, config = {}) {
+            return originalGet.call(this, url, {
+                ...config,
+                headers: {
+                    ...config.headers,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
         };
 
-        return super.makeRequest(endpoint, requestConfig, useCache);
+        const result = await super.makeRequest(endpoint, params, useCache);
+
+        this.client.get = originalGet;
+
+        return result;
     }
 
     async search(query, options = {}) {

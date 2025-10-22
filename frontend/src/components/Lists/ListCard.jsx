@@ -26,9 +26,6 @@ function ListCard({ list, onDelete, showActions = false }) {
         return list.items?.[index] || null;
     });
 
-    const column1 = slots.slice(0, 5);
-    const column2 = slots.slice(5, 10);
-
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
             <Link to={`/builder/${list._id}`} className="block p-6">
@@ -49,30 +46,16 @@ function ListCard({ list, onDelete, showActions = false }) {
                     )}
                 </div>
 
-                {/* 2×5 Grid Preview */}
                 <div className="mb-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Column 1 (items 1-5) */}
-                        <div className="space-y-3">
-                            {column1.map((item, index) => (
-                                <ListItemPreview
-                                    key={index}
-                                    item={item}
-                                    rank={index + 1}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Column 2 (items 6-10) */}
-                        <div className="space-y-3">
-                            {column2.map((item, index) => (
-                                <ListItemPreview
-                                    key={index + 5}
-                                    item={item}
-                                    rank={index + 6}
-                                />
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                            const item = slots[index];
+                            return item ? (
+                                <ListItemPreview key={item._id || item.externalId} item={item} />
+                            ) : (
+                                <EmptySlot key={`empty-${index}`} category={list.category} />
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -111,60 +94,60 @@ function ListCard({ list, onDelete, showActions = false }) {
     );
 }
 
-function ListItemPreview({ item, rank }) {
-    if (!item) {
-        return (
-            <div className="flex items-start gap-3">
-                <div className="w-[60px] h-[90px] bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0"></div>
-                <div className="flex-1 pt-1">
-                    <p className="text-xs text-gray-400 dark:text-gray-500">Empty slot</p>
-                </div>
-            </div>
-        );
-    }
+function ListItemPreview({ item }) {
+    const year = item.cachedData?.year || null;
 
-    const year = item.cachedData?.releaseDate
-        ? new Date(item.cachedData.releaseDate).getFullYear()
-        : item.releaseDate
-            ? new Date(item.releaseDate).getFullYear()
-            : null;
+    const getPosterDimensions = () => {
+        if (item.category === 'music') {
+            return { width: '64px', height: '64px' };
+        }
+        return { width: '64px', height: '96px' };
+    };
+
+    const posterDimensions = getPosterDimensions();
 
     return (
-        <div className="flex items-start gap-3">
-            {/* Rank badge (optional) */}
-            <div className="relative flex-shrink-0">
-                {/* Poster */}
-                {item.cachedData?.posterUrl ? (
-                    <img
-                        src={item.cachedData.posterUrl}
-                        alt={item.title}
-                        className="w-[60px] h-[90px] object-cover rounded"
-                    />
-                ) : (
-                    <div className="w-[60px] h-[90px] bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center text-xs text-gray-500">
-                        No image
-                    </div>
-                )}
-                
-                {/* Rank badge overlay */}
-                <div className="absolute -top-1 -left-1 bg-black bg-opacity-70 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {rank}
-                </div>
-            </div>
-
-            {/* Info (right side) */}
-            <div className="flex-1 pt-1">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 mb-1">
-                    {item.title}
-                </h4>
-                {year && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {year}
-                    </p>
-                )}
-            </div>
+        <div className="flex flex-col items-center text-center">
+            <img
+                src={item.cachedData?.posterUrl || '/placeholder.png'}
+                alt={item.title}
+                style={posterDimensions}
+                className="object-cover rounded shadow-md"
+            />
+            <p className="text-xs text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight overflow-hidden text-ellipsis">
+                {item.title}
+            </p>
+            {item.category === 'music' && (item.cachedData?.artist || item.artist) && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
+                    {item.cachedData?.artist || item.artist}
+                </p>
+            )}
+            {year && (
+                <p className="text-xs text-gray-600 dark:text-gray-400">({year})</p>
+            )}
         </div>
     )
+}
+
+function EmptySlot({ category = 'movies' }) {
+    const getSlotDimensions = () => {
+        if (category === 'music') {
+            return { width: '64px', height: '64px' };
+        }
+        return { width: '64px', height: '96px' };
+    };
+
+    const slotDimensions = getSlotDimensions();
+
+    return (
+        <div className="flex flex-col items-center text-center">
+            <div 
+                style={slotDimensions} 
+                className="bg-gray-200 dark:bg-gray-700 rounded shadow-md flex items-center justify-center"
+            >
+            </div>
+        </div>
+    );
 }
 
 ListCard.propTypes = {
@@ -183,15 +166,20 @@ ListCard.propTypes = {
 
 ListItemPreview.propTypes = {
     item: PropTypes.shape({
+        _id: PropTypes.string,
         externalId: PropTypes.string,
         title: PropTypes.string,
+        category: PropTypes.oneOf(['movies', 'music', 'games']).isRequired,
         cachedData: PropTypes.shape({
             posterUrl: PropTypes.string,
-            releaseDate: PropTypes.string,
+            year: PropTypes.number,
+            artist: PropTypes.string,
         }),
-        releaseDate: PropTypes.string,
     }),
-    rank: PropTypes.number.isRequired,
+};
+
+EmptySlot.propTypes = {
+    category: PropTypes.oneOf(['movies', 'music', 'games']),
 };
 
 export default ListCard;

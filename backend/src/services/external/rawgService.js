@@ -77,7 +77,7 @@ class RAWGService extends BaseExternalService {
             year: new Date(item.released).getFullYear(),
             posterUrl: item.background_image || null,
             rating: item.rating,
-            genres: item.genres?.map(g => ({ id: g.id, name: g.name })) || [],
+            genres: item.genres?.map(g => g.name) || [],
             category: 'games'
         };
     }
@@ -89,7 +89,7 @@ class RAWGService extends BaseExternalService {
             year: new Date(item.released).getFullYear(),
             posterUrl: item.background_image || null,
             rating: item.rating,
-            genres: item.genres?.map(g => ({ id: g.id, name: g.name })) || [],
+            genres: item.genres?.map(g => g.name) || [],
             category: 'games'
         };
     }

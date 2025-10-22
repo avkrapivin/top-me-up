@@ -26,6 +26,7 @@ const listItemSchema = new mongoose.Schema({
     cachedData: {
         posterUrl: String,
         year: Number,
+        artist: String,
         genres: [String],
         rating: Number,
         description: String

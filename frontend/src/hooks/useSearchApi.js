@@ -5,14 +5,18 @@ import api from "../services/api";
 export const useSearchContent = (category, query, params = {}, options = {}) => {
     return useQuery({
         queryKey: ['search', category, query, params],
-        queryFn: async () => {
-            const response = await api.get(`/search/${category}`, { 
-                params: { q: query, ...params }
+        enabled: !!query && query.length >= 2,
+        queryFn: async ({ signal }) => {
+            const response = await api.get(`/search/${category}`, {
+                params: { q: query, ...params },
+                signal,
             });
             return response.data;
         },
-        enabled: !!query && query.length >= 2, // Only search if query is valid
-        staleTime: 300000, // 5 minutes
+        staleTime: options.staleTime ?? 60_000,
+        keepPreviousData: options.keepPreviousData ?? true,
+        refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
+        retry: options.retry ?? 0,
         ...options,
     });
 };

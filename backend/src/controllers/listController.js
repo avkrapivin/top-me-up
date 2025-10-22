@@ -43,7 +43,7 @@ const getPublicLists = async (req, res) => {
 
 // Create new list
 const createList = async (req, res) => {
-    const { title, category, description, isPublic = false } = req.body;
+    const { title, category, description, isPublic = false, items = [] } = req.body;
     const userId = req.user._id;
 
     const list = new List({
@@ -52,7 +52,7 @@ const createList = async (req, res) => {
         category,
         description,
         isPublic,
-        items: []
+        items
     });
 
     await list.save();
@@ -86,12 +86,13 @@ const getListById = async (req, res) => {
 
 // Update list
 const updateList = async (req, res) => {
-    const { title, description, isPublic } = req.body;
+    const { title, description, isPublic, items } = req.body;
     const list = req.resource;
 
     if (title) list.title = title;
     if (description !== undefined) list.description = description;
     if (isPublic !== undefined) list.isPublic = isPublic;
+    if (items !== undefined) list.items = items;
 
     await list.save();
 
@@ -102,7 +103,7 @@ const updateList = async (req, res) => {
 const deleteList = async (req, res) => {
     const list = req.resource;
     const userId = req.user._id;
-               
+
     await List.findByIdAndDelete(list._id);
 
     // Update user's statistics
@@ -245,9 +246,11 @@ const removeListItem = async (req, res) => {
         return errorResponse(res, 'Item not found in the list', 404);
     }
 
-    list.items
-        .filter(item => item.externalId !== itemId)
-        .map((item, index) => ({ ...item, position: index + 1 }));
+    const newItems = list.items.filter(item => item.externalId !== itemId);
+    newItems.forEach((item, index) => {
+        item.position = index + 1;
+    });
+    list.items = newItems;
 
     await list.save();
     return successResponse(res, list, 'Item removed successfully', 200);

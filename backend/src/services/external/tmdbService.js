@@ -38,7 +38,7 @@ class TMDBService extends BaseExternalService {
             append_to_response: 'credits,videos,images,reviews'
         });
 
-        return this.formatMovieItem(data);
+        return this.formatMovieDetails(data);
     }
 
     async getGenres() {
@@ -80,7 +80,7 @@ class TMDBService extends BaseExternalService {
             year: item.release_date ? new Date(item.release_date).getFullYear() : null,
             posterUrl: item.poster_path ? `${this.config.imageBaseUrl}/${this.config.imageSize.poster}${item.poster_path}` : null,
             rating: item.vote_average,
-            genres: item.genre_ids || [],
+            genres: item.genre_ids?.map(id => id.toString()) || [],
             category: 'movies'
         };
     }
@@ -92,7 +92,7 @@ class TMDBService extends BaseExternalService {
             year: item.release_date ? new Date(item.release_date).getFullYear() : null,
             posterUrl: item.poster_path ? `${this.config.imageBaseUrl}/${this.config.imageSize.poster}${item.poster_path}` : null,
             rating: item.vote_average,
-            genres: item.genres?.map(g => ({ id: g.id, name: g.name })) || [],
+            genres: item.genres?.map(g => g.name) || [],
             imdbId: item.imdb_id,
             category: 'movies'
         };

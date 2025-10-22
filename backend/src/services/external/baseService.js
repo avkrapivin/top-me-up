@@ -23,7 +23,9 @@ class BaseExternalService {
 
     async makeRequest(endpoint, params = {}, useCache = true) {
         const apiKeyParam = this.serviceName === 'RAWG' ? 'key' : 'api_key';
-        const finalParams = { [apiKeyParam]: this.config.apiKey, ...params };
+        const finalParams = this.serviceName === 'Spotify'
+            ? params
+            : { [apiKeyParam]: this.config.apiKey, ...params };
 
         const cacheKey = this._generateCacheKey(endpoint, finalParams);
 

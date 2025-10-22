@@ -34,7 +34,8 @@ export const useList = (id) => {
             return response.data;
         },
         enabled: !!id,
-        staleTime: 30000, // 30 seconds
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        refetchOnWindowFocus: false,
     });
 };
 
@@ -135,8 +136,8 @@ export const useReorderListItems = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ listId, items }) => {
-            const response = await api.put(`/lists/${listId}/items/reorder`, { items });
+        mutationFn: async ({ listId, newOrder }) => {
+            const response = await api.put(`/lists/${listId}/items/reorder`, { newOrder });
             return response.data;
         },
         onSuccess: (data) => {

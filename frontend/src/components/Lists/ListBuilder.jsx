@@ -35,7 +35,7 @@ function ListBuilder() {
     const deleteListMutation = useDeleteList();
     const addItemMutation = useAddListItem();
     const removeItemMutation = useRemoveListItem();
-    const reorderItemsMutation = useReorderListItems();
+    const reorderListItemsMutation = useReorderListItems();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -52,7 +52,10 @@ function ListBuilder() {
             setDescription(list.description || '');
             setCategory(list.category);
             setIsPublic(list.isPublic);
-            setItems(list.items || []);
+            setItems((list.items || []).map((it, idx) => ({
+                ...it,
+                id: `${it._id || it.externalId}-${idx}-${Date.now()}`
+            })));
         }
     }, [listData]);
 
@@ -68,8 +71,10 @@ function ListBuilder() {
         }
 
         const newItem = {
+            id: `${item.externalId}-${Date.now()}-${Math.random()}`,
             externalId: item.externalId,
             title: item.title,
+            category,
             position: items.length + 1,
             cachedData: {
                 posterUrl: item.posterUrl,
@@ -79,35 +84,17 @@ function ListBuilder() {
             },
         };
 
-        if (isEditMode) {
-            try {
-                await addItemMutation.mutateAsync({
-                    listId: id,
-                    itemData: newItem,
-                });
-            } catch (error) {
-                console.error('Failed to add item:', error);
-                alert('Failed to add item');
-            }
-        } else {
-            setItems([...items, newItem]);
-        }
+        setItems(prevItems => {
+            const updatedItems = [...prevItems, newItem];
+            return updatedItems.map((item, index) => ({ ...item, position: index + 1 }));
+        });
     };
 
-    const handleRemoveItem = async (externalId) => {
-        if (isEditMode) {
-            try {
-                await removeItemMutation.mutateAsync({
-                    listId: id,
-                    itemId: externalId,
-                });
-            } catch (error) {
-                console.error('Failed to remove item:', error);
-                alert('Failed to remove item');
-            }
-        } else {
-            setItems(items.filter(item => item.externalId !== externalId));
-        }
+    const handleRemoveItem = async (itemId) => {
+        setItems(prevItems => {
+            const filtered = prevItems.filter(item => item.id !== itemId);
+            return filtered.map((x, i) => ({ ...x, position: i + 1 }));
+        });
     };
 
     const handleDragEnd = async (event) => {
@@ -115,28 +102,15 @@ function ListBuilder() {
 
         if (!over || active.id === over.id) return;
 
-        const oldIndex = items.findIndex(item => item.externalId === active.id);
-        const newIndex = items.findIndex(item => item.externalId === over.id);
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
 
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
+        const reorderedItems = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+            ...item,
+            position: index + 1
+        }));
+
         setItems(reorderedItems);
-
-        if (isEditMode) {
-            try {
-                const itemsWithPositions = reorderedItems.map((item, index) => ({
-                    externalId: item.externalId,
-                    position: index,
-                }));
-
-                await reorderItemsMutation.mutateAsync({
-                    listId: id,
-                    items: itemsWithPositions,
-                });
-            } catch (error) {
-                console.error('Failed to reorder items:', error);
-                alert('Failed to reorder items');
-            }
-        }
     };
 
     const handleSave = async () => {
@@ -150,12 +124,26 @@ function ListBuilder() {
             return;
         }
 
+        const sanitizeItems = (arr) =>
+            (arr || []).map(({ externalId, title, category, position, cachedData }) => ({
+                externalId,
+                title,
+                category,
+                position,
+                cachedData: cachedData ? {
+                    posterUrl: cachedData.posterUrl,
+                    year: cachedData.year,
+                    artist: cachedData.artist,
+                    genres: cachedData.genres,
+                } : {},
+            }));
+
         const listData = {
             title: title.trim(),
             description: description.trim(),
             category,
             isPublic,
-            items,
+            items: sanitizeItems(items),
         };
 
         try {
@@ -255,8 +243,12 @@ function ListBuilder() {
                         </label>
                         <CategorySelector
                             selected={category}
-                            onChange={setCategory}
-                            disabled={isEditMode} // Cannot change category in edit mode
+                            onChange={(newCategory) => {
+                                setCategory(newCategory);
+                                setItems([]);
+                            }}
+                            disabled={false}
+                            hasItems={items.length > 0}
                         />
                     </div>
 
@@ -313,13 +305,13 @@ function ListBuilder() {
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={items.map(item => item.externalId)}
+                            items={items.map(item => item.id)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="grid grid-cols-2 gap-6">
                                 {items.map((item, index) => (
                                     <DraggableListItem
-                                        key={item.externalId}
+                                        key={item.id}
                                         item={item}
                                         rank={index + 1}
                                         onRemove={handleRemoveItem}
@@ -330,7 +322,7 @@ function ListBuilder() {
                                 {Array(10 - items.length)
                                     .fill(null)
                                     .map((_, index) => (
-                                        <EmptySlot key={`empty-${index}`} rank={items.length + index + 1} />
+                                        <EmptySlot key={`empty-${index}`} rank={items.length + index + 1} category={category} />
                                     ))}
                             </div>
                         </SortableContext>
