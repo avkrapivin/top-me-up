@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useToast } from '../../contexts/ToastContext';
 
 import {
     useList,
@@ -16,6 +17,7 @@ import CategorySelector from './CategorySelector';
 import SearchBox from '../Search/SearchBox';
 import DraggableListItem from './DraggableListItem';
 import EmptySlot from './EmptySlot';
+import ExportModal from './ExportModal';
 
 function ListBuilder() {
     const { id } = useParams();
@@ -23,12 +25,14 @@ function ListBuilder() {
     const isEditMode = !!id;
 
     const { data: listData, isLoading: isLoadingList } = useList(id);
+    const { showSuccess, showError, showWarning } = useToast();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('movies');
     const [isPublic, setIsPublic] = useState(false);
     const [items, setItems] = useState([]);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     const createListMutation = useCreateList();
     const updateListMutation = useUpdateList();
@@ -61,12 +65,12 @@ function ListBuilder() {
 
     const handleAddItem = async (item) => {
         if (items.length >= 10) {
-            alert('Maximum 10 items allowed');
+            showWarning('Maximum 10 items allowed');
             return;
         }
 
         if (items.some(i => i.externalId === item.externalId)) {
-            alert('This item is already in the list');
+            showWarning('This item is already in the list');
             return;
         }
 
@@ -115,12 +119,12 @@ function ListBuilder() {
 
     const handleSave = async () => {
         if (!title.trim()) {
-            alert('Please enter a title');
+            showWarning('Please enter a title');
             return;
         }
 
         if (!category) {
-            alert('Please select a category');
+            showWarning('Please select a category');
             return;
         }
 
@@ -152,15 +156,16 @@ function ListBuilder() {
                     id,
                     data: listData,
                 });
-                alert('List updated successfully');
+                showSuccess('List updated successfully');
+                setShowExportModal(true);
             } else {
                 const result = await createListMutation.mutateAsync(listData);
-                alert('List created successfully');
+                showSuccess('List created successfully');
                 navigate(`/builder/${result.data._id}`);
             }
         } catch (error) {
             console.error('Failed to save list:', error);
-            alert('Failed to save list');
+            showError('Failed to save list');
         }
     };
 
@@ -169,13 +174,20 @@ function ListBuilder() {
 
         try {
             await deleteListMutation.mutateAsync(id);
-            alert('List deleted successfully');
+            showSuccess('List deleted successfully');
             navigate('/dashboard');
         } catch (error) {
             console.error('Failed to delete list:', error);
-            alert('Failed to delete list');
+            showError('Failed to delete list');
         }
     };
+
+    const exportListData = isEditMode && listData?.data ? {
+        title: title || listData.data.title,
+        description: description || listData.data.description,
+        author: listData.data.author?.username || 'User',
+        items: items.map(({ id, ...item }) => ({ ...item }))
+    } : null;
 
     if (isEditMode && isLoadingList) {
         return (
@@ -197,6 +209,15 @@ function ListBuilder() {
                         ← Back to Dashboard
                     </button>
                     <div className="flex gap-2">
+                        {isEditMode && (
+                            <button
+                                onClick={() => setShowExportModal(true)}
+                                disabled={!items.length}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition disabled:opacity-50"
+                            >
+                                Export
+                            </button>
+                        )}
                         <button
                             onClick={handleSave}
                             disabled={createListMutation.isPending || updateListMutation.isPending}
@@ -329,6 +350,14 @@ function ListBuilder() {
                     </DndContext>
                 </div>
             </div>
+            {/* Export Modal */}
+            {exportListData && (
+                <ExportModal
+                    isOpen={showExportModal}
+                    onClose={() => setShowExportModal(false)}
+                    listData={exportListData}
+                />
+            )}
         </div>
     );
 }
