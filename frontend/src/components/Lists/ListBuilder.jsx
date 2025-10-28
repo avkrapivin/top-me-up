@@ -185,7 +185,7 @@ function ListBuilder() {
     const exportListData = isEditMode && listData?.data ? {
         title: title || listData.data.title,
         description: description || listData.data.description,
-        author: listData.data.author?.username || 'User',
+        author: listData.data.author || listData.data.owner || null,
         items: items.map(({ id, ...item }) => ({ ...item }))
     } : null;
 

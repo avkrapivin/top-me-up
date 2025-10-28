@@ -5,6 +5,7 @@ const listRoutes = require('./lists');
 const commentRoutes = require('./comments');
 const statisticsRoutes = require('./statistics');
 const searchRoutes = require('./search');
+const proxyRoutes = require('./proxy');
 
 const router = express.Router();
 
@@ -30,5 +31,8 @@ router.use('/comments', commentRoutes);
 router.use('/statistics', statisticsRoutes);
 
 router.use('/search', searchLimiter, searchRoutes);
+
+// Proxy routes
+router.use('/proxy', proxyRoutes);
 
 module.exports = router;
