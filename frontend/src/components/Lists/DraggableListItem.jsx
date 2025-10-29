@@ -2,6 +2,30 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import PropTypes from 'prop-types';
 
+const getPosterConfig = (category) => {
+    switch (category) {
+        case 'music':
+            return {
+                style: { width: '64px', height: '64px' },
+                imageClass: 'object-cover',
+                containerClass: 'bg-gray-200 dark:bg-gray-700',
+            };
+        case 'games':
+            return {
+                style: { width: '96px', aspectRatio: '16 / 9', height: 'auto' },
+                imageClass: 'object-cover',
+                containerClass: 'bg-gray-200 dark:bg-gray-700',
+            };
+        default:
+            return {
+                style: { width: '64px', height: '96px' },
+                imageClass: 'object-cover',
+                containerClass: 'bg-gray-200 dark:bg-gray-700',
+            };
+    }
+};
+
+
 function DraggableListItem({ item, rank, onRemove }) {
     const {
         attributes,
@@ -19,15 +43,8 @@ function DraggableListItem({ item, rank, onRemove }) {
     };
 
     const year = item.cachedData?.year || item.year || null;
-
-    const getPosterDimensions = () => {
-        if (item.category === 'music') {
-            return { width: '64px', height: '64px' };
-        }
-        return { width: '64px', height: '96px' };
-    }
-
-    const posterDimensions = getPosterDimensions();
+    const posterConfig = getPosterConfig(item.category);
+    const posterUrl = item.cachedData?.posterUrl;
 
     return (
         <div
@@ -43,18 +60,25 @@ function DraggableListItem({ item, rank, onRemove }) {
                 {...listeners}
                 className="relative flex-shrink-0 cursor-grab active:cursor-grabbing"
             >
-                {item.cachedData?.posterUrl ? (
-                    <img
-                        src={item.cachedData.posterUrl}
-                        alt={item.title}
-                        style={posterDimensions}
-                        className="object-cover rounded"
-                    />
-                ) : (
-                    <div style={posterDimensions} className="bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center text-xs text-gray-500">
-                        No image
-                    </div>
-                )}
+                <div
+                    style={posterConfig.style}
+                    className={`
+                        rounded overflow-hidden flex items-center justify-center
+                        ${posterConfig.containerClass || ''}
+                    `}
+                >
+                    {posterUrl ? (
+                        <img
+                            src={posterUrl}
+                            alt={item.title}
+                            className={`${posterConfig.imageClass} w-full h-full`}
+                        />
+                    ) : (
+                        <div className="text-xs text-gray-300 dark:text-gray-500">
+                            No image
+                        </div>
+                    )}
+                </div>
 
                 <button
                     onClick={(e) => {

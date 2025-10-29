@@ -78,6 +78,8 @@ const getListById = async (req, res) => {
         }
     }
 
+    await list.populate('user', 'displayName');
+    
     // Increment views count
     await list.incrementViews();
 

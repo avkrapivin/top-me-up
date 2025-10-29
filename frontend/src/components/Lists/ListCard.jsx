@@ -1,6 +1,14 @@
 import { Link } from "react-router-dom";
 import PropTypes from 'prop-types';
 
+const posterConfigByCategory = {
+    movies: { width: 64, height: 96, imageClass: 'object-cover', containerBg: 'bg-gray-200 dark:bg-gray-700' },
+    music: { width: 64, height: 64, imageClass: 'object-cover', containerBg: 'bg-gray-200 dark:bg-gray-700' },
+    games: { width: 96, height: null, aspectRatio: '16 / 9', imageClass: 'object-cover', containerBg: 'bg-gray-200 dark:bg-gray-700' },
+};
+
+const getPosterConfig = (category) => posterConfigByCategory[category] || posterConfigByCategory.movies;
+
 function ListCard({ list, onDelete, showActions = false }) {
     const getCategoryLabel = (category) => {
         switch (category) {
@@ -96,24 +104,24 @@ function ListCard({ list, onDelete, showActions = false }) {
 
 function ListItemPreview({ item }) {
     const year = item.cachedData?.year || null;
-
-    const getPosterDimensions = () => {
-        if (item.category === 'music') {
-            return { width: '64px', height: '64px' };
-        }
-        return { width: '64px', height: '96px' };
-    };
-
-    const posterDimensions = getPosterDimensions();
+    const config = getPosterConfig(item.category);
 
     return (
         <div className="flex flex-col items-center text-center">
-            <img
-                src={item.cachedData?.posterUrl || '/placeholder.png'}
-                alt={item.title}
-                style={posterDimensions}
-                className="object-cover rounded shadow-md"
-            />
+            <div
+                style={{
+                    width: `${config.width}px`,
+                    height: config.height ? `${config.height}px` : 'auto',
+                    aspectRatio: config.aspectRatio || undefined,
+                }}
+                className={`rounded shadow-md overflow-hidden flex items-center justify-center ${config.containerBg}`}
+            >
+                <img
+                    src={item.cachedData?.posterUrl || '/placeholder.png'}
+                    alt={item.title}
+                    className={`${config.imageClass} w-full h-full`}
+                />
+            </div>
             <p className="text-xs text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight overflow-hidden text-ellipsis">
                 {item.title}
             </p>
@@ -130,22 +138,18 @@ function ListItemPreview({ item }) {
 }
 
 function EmptySlot({ category = 'movies' }) {
-    const getSlotDimensions = () => {
-        if (category === 'music') {
-            return { width: '64px', height: '64px' };
-        }
-        return { width: '64px', height: '96px' };
-    };
-
-    const slotDimensions = getSlotDimensions();
+    const config = getPosterConfig(category);
 
     return (
         <div className="flex flex-col items-center text-center">
-            <div 
-                style={slotDimensions} 
-                className="bg-gray-200 dark:bg-gray-700 rounded shadow-md flex items-center justify-center"
-            >
-            </div>
+            <div
+                style={{
+                    width: `${config.width}px`,
+                    height: config.height ? `${config.height}px` : 'auto',
+                    aspectRatio: config.aspectRatio || undefined, 
+                }}
+                className={`rounded shadow-md flex items-center justify-center ${config.containerBg}`}
+            />
         </div>
     );
 }
