@@ -1,12 +1,191 @@
+import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useListByShareToken } from '../hooks/useListApi';
+import ListCard from '../components/Lists/ListCard';
+
 function PublicList() {
+    const { token } = useParams();
+    const { data: listData, isLoading, error } = useListByShareToken(token);
+
+    useEffect(() => {
+        if (listData?.data) {
+            const list = listData.data;
+            const authorName = list.user?.displayName || 'User';
+            
+            // Remove old meta tags
+            document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(meta => meta.remove());
+            
+            // Create meta tags for Open Graph  
+            const metaTags = [
+                { property: 'og:title', content: `${list.title} by ${authorName}` },
+                { property: 'og:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'}` },
+                { property: 'og:type', content: 'website' },
+                { property: 'og:url', content: window.location.href },
+                { property: 'og:site_name', content: 'TopMeUp' },
+                { name: 'twitter:card', content: 'summary' },
+                { name: 'twitter:title', content: `${list.title} by ${authorName}` },
+                { name: 'twitter:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'}` },
+            ];
+
+            // If there is a poster of the first element - add image
+            if (list.items?.[0]?.cachedData?.posterUrl) {
+                metaTags.push(
+                    { property: 'og:image', content: list.items[0].cachedData.posterUrl },
+                    { name: 'twitter:image', content: list.items[0].cachedData.posterUrl }
+                );
+            }
+
+            metaTags.forEach(tag => {
+                const meta = document.createElement('meta');
+                if (tag.property) {
+                    meta.setAttribute('property', tag.property);
+                } else {
+                    meta.setAttribute('name', tag.name);
+                }
+                meta.setAttribute('content', tag.content);
+                document.head.appendChild(meta);
+            });
+
+            // Update page title
+            document.title = `${list.title} - TopMeUp`;
+        }
+
+        return () => {
+            // Clean up when unmounting
+            document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(meta => meta.remove());
+        };
+    }, [listData, token]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
+                            Error
+                        </h1>
+                        <p className="text-gray-600 dark:text-gray-300">
+                            {error.message || 'List not found or not available'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!listData?.data) {
+        return null;
+    }
+
+    const list = listData.data;
+    const authorName = list.user?.displayName || 'User';
+
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                Public List
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-                View public lists (will be implemented later)
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        {list.title}
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-300 mb-2">
+                        by {authorName}
+                    </p>
+                    {list.description && (
+                        <p className="text-gray-500 dark:text-gray-400 mt-2">
+                            {list.description}
+                        </p>
+                    )}
+                    <div className="flex gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span>{list.items?.length || 0}/10 items</span>
+                        {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
+                        {list.likesCount > 0 && <span>{list.likesCount} likes</span>}
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                            const item = list.items?.[index];
+                            return item ? (
+                                <ListItemPreview key={item._id || item.externalId} item={item} />
+                            ) : (
+                                <EmptySlot key={`empty-${index}`} category={list.category} />
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Components for displaying elements
+function ListItemPreview({ item }) {
+    const year = item.cachedData?.year || null;
+    const posterConfig = {
+        movies: { width: 64, height: 96, imageClass: 'object-cover' },
+        music: { width: 64, height: 64, imageClass: 'object-cover' },
+        games: { width: 96, aspectRatio: '16 / 9', imageClass: 'object-cover' },
+    };
+    const config = posterConfig[item.category] || posterConfig.movies;
+
+    return (
+        <div className="flex flex-col items-center text-center">
+            <div
+                style={{
+                    width: `${config.width}px`,
+                    height: config.height ? `${config.height}px` : 'auto',
+                    aspectRatio: config.aspectRatio || undefined,
+                }}
+                className="rounded shadow-md overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700"
+            >
+                <img
+                    src={item.cachedData?.posterUrl || '/placeholder.png'}
+                    alt={item.title}
+                    className={`${config.imageClass} w-full h-full`}
+                />
+            </div>
+            <p className="text-xs text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight">
+                {item.title}
             </p>
+            {item.category === 'music' && item.cachedData?.artist && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
+                    {item.cachedData.artist}
+                </p>
+            )}
+            {year && (
+                <p className="text-xs text-gray-600 dark:text-gray-400">({year})</p>
+            )}
+        </div>
+    );
+}
+
+function EmptySlot({ category }) {
+    const slotConfig = {
+        movies: { width: 64, height: 96 },
+        music: { width: 64, height: 64 },
+        games: { width: 96, aspectRatio: '16 / 9' },
+    };
+    const config = slotConfig[category] || slotConfig.movies;
+
+    return (
+        <div className="flex flex-col items-center text-center">
+            <div
+                style={{
+                    width: `${config.width}px`,
+                    height: config.height ? `${config.height}px` : 'auto',
+                    aspectRatio: config.aspectRatio || undefined,
+                }}
+                className="rounded shadow-md bg-gray-200 dark:bg-gray-700"
+            />
         </div>
     );
 }

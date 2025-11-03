@@ -18,6 +18,7 @@ import SearchBox from '../Search/SearchBox';
 import DraggableListItem from './DraggableListItem';
 import EmptySlot from './EmptySlot';
 import ExportModal from './ExportModal';
+import ShareButton from './ShareButton';
 
 function ListBuilder() {
     const { id } = useParams();
@@ -210,6 +211,8 @@ function ListBuilder() {
                     </button>
                     <div className="flex gap-2">
                         {isEditMode && (
+                        <>
+                            <ShareButton listId={id} listTitle={title} isPublic={isPublic} />
                             <button
                                 onClick={() => setShowExportModal(true)}
                                 disabled={!items.length}
@@ -217,6 +220,7 @@ function ListBuilder() {
                             >
                                 Export
                             </button>
+                        </>
                         )}
                         <button
                             onClick={handleSave}

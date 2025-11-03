@@ -7,7 +7,6 @@ import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import ProtectedRoute from '../components/Auth/ProtectedRoute';
 
-
 function AppRoutes() {
     return (
         <Routes>
@@ -54,6 +53,8 @@ function AppRoutes() {
                 </ProtectedRoute>
                 } 
             />
+
+            <Route path="/share/:token" element={<PublicList />} />
         </Routes>
     )
 }

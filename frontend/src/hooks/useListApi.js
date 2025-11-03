@@ -145,3 +145,26 @@ export const useReorderListItems = () => {
         },
     });
 };
+
+// Generate share token
+export const useGenerateShareToken = () => {
+    return useMutation({
+        mutationFn: async (id) => {
+            const response = await api.post(`/lists/${id}/share`);
+            return response.data;
+        },
+    });
+};
+
+// Fetch list by share token
+export const useListByShareToken = (token) => {
+    return useQuery({
+        queryKey: ['list', 'share', token],
+        queryFn: async () => {
+            const response = await api.get(`/lists/share/${token}`);
+            return response.data;
+        },
+        enabled: !!token,
+        staleTime: 60000, // 1 minute
+    });
+};

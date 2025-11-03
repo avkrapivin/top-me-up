@@ -71,15 +71,16 @@ const getListById = async (req, res) => {
 
     // Check if list is public or owned by the user
     const uid = req.auth?.uid;
-    if (!list.isPublic && uid) {
+    if (!list.isPublic) {
+        if (!uid) return errorResponse(res, 'Authentication required', 401);
         const user = await User.findOne({ firebaseUid: uid });
         if (!user || list.userId.toString() !== user._id.toString()) {
-            return errorResponse(res, 'Not authorized to access this list', 403);
+            return errorResponse(res, 'Not authorized', 403);
         }
     }
 
     await list.populate('user', 'displayName');
-    
+
     // Increment views count
     await list.incrementViews();
 
@@ -90,6 +91,10 @@ const getListById = async (req, res) => {
 const updateList = async (req, res) => {
     const { title, description, isPublic, items } = req.body;
     const list = req.resource;
+
+    if (items && items.length > 10) {
+        return errorResponse(res, 'List cannot have more than 10 items', 400);
+    }
 
     if (title) list.title = title;
     if (description !== undefined) list.description = description;
@@ -189,16 +194,16 @@ const addListItem = async (req, res) => {
         return errorResponse(res, 'Item category must match list category', 400);
     }
 
+    list.items.forEach(item => {
+        if (item.position >= position) item.position += 1;
+    });
+
     list.items.push({
         externalId,
         title,
         category,
         position,
         cachedData: cachedData || {}
-    });
-
-    list.items.forEach(item => {
-        if (item.position >= position) item.position += 1;
     });
 
     list.items.sort((a, b) => a.position - b.position);
@@ -279,6 +284,39 @@ const reorderListItems = async (req, res) => {
     return successResponse(res, list, 'Items reordered successfully', 200);
 }
 
+// Generate share token for a list
+const generateShareToken = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+
+    if (list.userId.toString() !== userId.toString()) {
+        return errorResponse(res, 'Not authorized', 403);
+    }
+
+    await list.generateShareToken();
+
+    return successResponse(res, { 
+        shareToken: list.shareToken,
+        shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/share/${list.shareToken}`
+    }, 'Share token generated successfully'); 
+};
+
+// Get list by share token (public access)
+const getListByShareToken = async (req, res) => {
+    const { token } = req.params;
+
+    const list = await List.findOne({ shareToken: token, isPublic: true });
+
+    if (!list) {
+        return errorResponse(res, 'List not found or not public', 404);
+    }
+
+    await list.populate('user', 'displayName');
+    await list.incrementViews();
+    
+    return successResponse(res, list);
+}
+
 module.exports = {
     getUserLists,
     getPublicLists,
@@ -291,5 +329,7 @@ module.exports = {
     addListItem,
     updateListItem,
     removeListItem,
-    reorderListItems
+    reorderListItems,
+    generateShareToken,
+    getListByShareToken
 };
