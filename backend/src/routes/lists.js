@@ -1,5 +1,5 @@
 const express = require('express');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, optionalVerifyToken } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { loadList } = require('../middleware/resourceLoader');
 const { requireUser, requireOwnership } = require('../utils/userHelper');
@@ -19,7 +19,9 @@ const {
     removeListItem,
     reorderListItems,
     generateShareToken,
-    getListByShareToken
+    getListByShareToken,
+    getShareToken,
+    resetShareToken
 } = require('../controllers/listController');
 
 const router = express.Router();
@@ -27,7 +29,7 @@ const router = express.Router();
 // Public routes
 router.get('/public', asyncHandler(getPublicLists));
 router.get('/share/:token', asyncHandler(getListByShareToken));
-router.get('/:id', loadList, asyncHandler(getListById));
+router.get('/:id', optionalVerifyToken, loadList, asyncHandler(getListById));
 router.get('/:id/comments', loadList, asyncHandler(getListComments));
 
 // Private routes
@@ -40,7 +42,9 @@ router.put('/:id', loadList, requireOwnership(), validateListUpdate, asyncHandle
 router.delete('/:id', loadList, requireOwnership(), asyncHandler(deleteList));
 router.post('/:id/comments', loadList, authLimiter, validateComment, asyncHandler(createListComment));
 
+router.get('/:id/share', loadList, requireOwnership(), asyncHandler(getShareToken));
 router.post('/:id/share', loadList, requireOwnership(), asyncHandler(generateShareToken));
+router.delete('/:id/share', loadList, requireOwnership(), asyncHandler(resetShareToken));
 
 router.post('/:id/items', loadList, requireOwnership(), asyncHandler(addListItem));
 router.put('/:id/items/:itemId', loadList, requireOwnership(), asyncHandler(updateListItem));

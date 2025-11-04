@@ -81,8 +81,14 @@ const getListById = async (req, res) => {
 
     await list.populate('user', 'displayName');
 
+    const isOwner = uid && await User.findOne({ firebaseUid: uid }).then(user =>
+        user && list.userId.toString() === user._id.toString()
+    );
+
     // Increment views count
-    await list.incrementViews();
+    if (!isOwner) {
+        await list.incrementViews();
+    }
 
     return successResponse(res, list);
 };
@@ -312,9 +318,48 @@ const getListByShareToken = async (req, res) => {
     }
 
     await list.populate('user', 'displayName');
+
     await list.incrementViews();
     
     return successResponse(res, list);
+}
+
+// Get existing share token (if exitst)
+const getShareToken = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+
+    if (list.userId.toString() !== userId.toString()) {
+        return errorResponse(res, 'Not authorized', 403);
+    }
+
+    if (!list.isPublic) {
+        return errorResponse(res, 'List must be public to share', 400);
+    }
+
+    if (list.shareToken) {
+        return successResponse(res, {
+            shareToken: list.shareToken,
+            shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/share/${list.shareToken}`
+        })
+    }
+
+    return successResponse(res, { shareToken: null, shareUrl: null }, 'No share token exists');
+}
+
+// Reset share token
+const resetShareToken = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+
+    if (list.userId.toString() !== userId.toString()) {
+        return errorResponse(res, 'Not authorized', 403);
+    }
+
+    list.shareToken = undefined;
+    await list.save();
+
+    return successResponse(res, { message: 'Share token reset successfully' });
 }
 
 module.exports = {
@@ -331,5 +376,7 @@ module.exports = {
     removeListItem,
     reorderListItems,
     generateShareToken,
-    getListByShareToken
+    getListByShareToken,
+    getShareToken,
+    resetShareToken
 };

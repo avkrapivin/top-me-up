@@ -11,27 +11,31 @@ function PublicList() {
         if (listData?.data) {
             const list = listData.data;
             const authorName = list.user?.displayName || 'User';
-            
+
             // Remove old meta tags
             document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(meta => meta.remove());
-            
+
             // Create meta tags for Open Graph  
             const metaTags = [
                 { property: 'og:title', content: `${list.title} by ${authorName}` },
-                { property: 'og:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'}` },
+                { property: 'og:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'} by ${authorName} on TopMeUp` },
                 { property: 'og:type', content: 'website' },
                 { property: 'og:url', content: window.location.href },
                 { property: 'og:site_name', content: 'TopMeUp' },
-                { name: 'twitter:card', content: 'summary' },
+                { name: 'twitter:card', content: 'summary_large_image' },
                 { name: 'twitter:title', content: `${list.title} by ${authorName}` },
-                { name: 'twitter:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'}` },
+                { name: 'twitter:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'} by ${authorName}` },
             ];
 
             // If there is a poster of the first element - add image
             if (list.items?.[0]?.cachedData?.posterUrl) {
                 metaTags.push(
                     { property: 'og:image', content: list.items[0].cachedData.posterUrl },
-                    { name: 'twitter:image', content: list.items[0].cachedData.posterUrl }
+                    { property: 'og:image:width', content: '1200' },
+                    { property: 'og:image:height', content: '630' },
+                    { property: 'og:image:type', content: 'image/jpeg' },
+                    { name: 'twitter:image', content: list.items[0].cachedData.posterUrl },
+                    { name: 'twitter:image:alt', content: `${list.title} - ${list.items[0].title}` }
                 );
             }
 
@@ -110,8 +114,8 @@ function PublicList() {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                    <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
+                    <div className="grid grid-cols-2 gap-4">
                         {Array.from({ length: 10 }).map((_, index) => {
                             const item = list.items?.[index];
                             return item ? (
@@ -138,14 +142,14 @@ function ListItemPreview({ item }) {
     const config = posterConfig[item.category] || posterConfig.movies;
 
     return (
-        <div className="flex flex-col items-center text-center">
+        <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <div
                 style={{
                     width: `${config.width}px`,
                     height: config.height ? `${config.height}px` : 'auto',
                     aspectRatio: config.aspectRatio || undefined,
                 }}
-                className="rounded shadow-md overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700"
+                className="rounded overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700 flex-shrink-0"
             >
                 <img
                     src={item.cachedData?.posterUrl || '/placeholder.png'}
@@ -153,17 +157,21 @@ function ListItemPreview({ item }) {
                     className={`${config.imageClass} w-full h-full`}
                 />
             </div>
-            <p className="text-xs text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight">
-                {item.title}
-            </p>
-            {item.category === 'music' && item.cachedData?.artist && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
-                    {item.cachedData.artist}
-                </p>
-            )}
-            {year && (
-                <p className="text-xs text-gray-600 dark:text-gray-400">({year})</p>
-            )}
+            <div className="flex-1 pt-1 min-w-0">
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 mb-1">
+                    {item.title}
+                </h4>
+                {item.category === 'music' && item.cachedData?.artist && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 mb-1">
+                        {item.cachedData.artist}
+                    </p>
+                )}
+                {year && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {year}
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
@@ -177,15 +185,16 @@ function EmptySlot({ category }) {
     const config = slotConfig[category] || slotConfig.movies;
 
     return (
-        <div className="flex flex-col items-center text-center">
+        <div className="flex items-start gap-2 p-2 rounded-lg">
             <div
                 style={{
                     width: `${config.width}px`,
                     height: config.height ? `${config.height}px` : 'auto',
                     aspectRatio: config.aspectRatio || undefined,
                 }}
-                className="rounded shadow-md bg-gray-200 dark:bg-gray-700"
+                className="rounded shadow-md bg-gray-200 dark:bg-gray-700 flex-shrink-0"
             />
+            <div className="flex-1" />
         </div>
     );
 }

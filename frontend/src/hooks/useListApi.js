@@ -148,10 +148,11 @@ export const useReorderListItems = () => {
 
 // Generate share token
 export const useGenerateShareToken = () => {
+    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (id) => {
-            const response = await api.post(`/lists/${id}/share`);
-            return response.data;
+        mutationFn: async (id) => api.post(`/lists/${id}/share`).then(res => res.data),
+        onSuccess: (_data, id) => {
+            queryClient.invalidateQueries({ queryKey: ['list', id, 'share'] });
         },
     });
 };
@@ -166,5 +167,32 @@ export const useListByShareToken = (token) => {
         },
         enabled: !!token,
         staleTime: 60000, // 1 minute
+    });
+};
+
+// Get existing share token
+export const useShareToken = (id) => {
+    return useQuery({
+        queryKey: ['list', id, 'share'],
+        queryFn: async () => {
+            const response = await api.get(`/lists/${id}/share`);
+            return response.data;
+        },
+        enabled: !!id,
+        staleTime: 60000, // 1 minute
+    });
+};
+
+export const useResetShareToken = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id) => {
+            const response = await api.delete(`/lists/${id}/share`);
+            return response.data;
+        },
+        onSuccess: (data, id) => {
+            queryClient.invalidateQueries({ queryKey: ['list', id, 'share']});
+        },
     });
 };

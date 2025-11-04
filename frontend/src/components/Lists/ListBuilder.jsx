@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -35,12 +35,81 @@ function ListBuilder() {
     const [items, setItems] = useState([]);
     const [showExportModal, setShowExportModal] = useState(false);
 
+    const originalStateRef = useRef(null);
+
     const createListMutation = useCreateList();
     const updateListMutation = useUpdateList();
     const deleteListMutation = useDeleteList();
     const addItemMutation = useAddListItem();
     const removeItemMutation = useRemoveListItem();
     const reorderListItemsMutation = useReorderListItems();
+
+    const normalizeItems = (itemsArray) => {
+        return (itemsArray || [])
+            .map(({ externalId, title, category, position, cachedData }) => ({
+                externalId,
+                title,
+                category,
+                position,
+                cachedData: {
+                    posterUrl: cachedData?.posterUrl,
+                    year: cachedData?.year,
+                    artist: cachedData?.artist,
+                    genres: cachedData?.genres,
+                }
+            }))
+            .sort((a, b) => a.position - b.position);
+    };
+
+    const hasChanges = () => {
+        if (!isEditMode || !originalStateRef.current) {
+            return false;
+        }
+
+        const original = originalStateRef.current;
+        const current = {
+            title: title.trim(),
+            description: (description || '').trim(),
+            category,
+            isPublic,
+            items: normalizeItems(items),
+        };
+
+        if (
+            original.title !== current.title ||
+            original.description !== current.description ||
+            original.category !== current.category ||
+            original.isPublic !== current.isPublic 
+        ) {
+            return true;
+        }
+
+        if (original.items.length !== current.items.length) {
+            return true;
+        }
+
+        for (let i = 0; i < original.items.length; i++) {
+            const origItem = original.items[i];
+            const currItem = current.items[i];
+
+            if (
+                origItem.externalId !== currItem.externalId ||
+                origItem.position !== currItem.position ||
+                origItem.title !== currItem.title ||
+                origItem.category !== currItem.category ||
+                origItem.cachedData.posterUrl !== currItem.cachedData.posterUrl ||
+                origItem.cachedData.year !== currItem.cachedData.year ||
+                origItem.cachedData.artist !== currItem.cachedData.artist
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    const isPublicPersisted = Boolean(listData?.data?.isPublic);
+    const hasUnsavedChanges = isEditMode ? hasChanges() : false;
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -51,8 +120,17 @@ function ListBuilder() {
     );
 
     useEffect(() => {
-        if (listData?.data) {
+        if (listData?.data && isEditMode) {
             const list = listData.data;
+            const originalState = {
+                title: list.title,
+                description: list.description || '',
+                category: list.category,
+                isPublic: list.isPublic,
+                items: normalizeItems(list.items || []),
+            };
+            originalStateRef.current = originalState;
+
             setTitle(list.title);
             setDescription(list.description || '');
             setCategory(list.category);
@@ -62,7 +140,7 @@ function ListBuilder() {
                 id: `${it._id || it.externalId}-${idx}-${Date.now()}`
             })));
         }
-    }, [listData]);
+    }, [listData, isEditMode]);
 
     const handleAddItem = async (item) => {
         if (items.length >= 10) {
@@ -158,7 +236,14 @@ function ListBuilder() {
                     data: listData,
                 });
                 showSuccess('List updated successfully');
-                setShowExportModal(true);
+
+                originalStateRef.current = {
+                    title: listData.title,
+                    description: listData.description,
+                    category: listData.category,
+                    isPublic: listData.isPublic,
+                    items: sanitizeItems(items),
+                };
             } else {
                 const result = await createListMutation.mutateAsync(listData);
                 showSuccess('List created successfully');
@@ -190,6 +275,10 @@ function ListBuilder() {
         items: items.map(({ id, ...item }) => ({ ...item }))
     } : null;
 
+    const isSaveButtonDisabled = isEditMode
+        ? !hasChanges() || updateListMutation.isPending || createListMutation.isPending
+        : createListMutation.isPending || updateListMutation.isPending;
+
     if (isEditMode && isLoadingList) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -212,7 +301,11 @@ function ListBuilder() {
                     <div className="flex gap-2">
                         {isEditMode && (
                         <>
-                            <ShareButton listId={id} listTitle={title} isPublic={isPublic} />
+                            <ShareButton 
+                                listId={id} 
+                                listTitle={title} 
+                                isPublicPersisted={isPublicPersisted}
+                                hasUnsavedChanges={hasUnsavedChanges} />
                             <button
                                 onClick={() => setShowExportModal(true)}
                                 disabled={!items.length}
@@ -224,7 +317,7 @@ function ListBuilder() {
                         )}
                         <button
                             onClick={handleSave}
-                            disabled={createListMutation.isPending || updateListMutation.isPending}
+                            disabled={isSaveButtonDisabled}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition disabled:opacity-50"
                         >
                             {isEditMode ? 'Save Changes' : 'Save List'}
