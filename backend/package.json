@@ -34,7 +34,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.1",
     "node-cache": "^5.1.2",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "eslint": "^9.35.0",

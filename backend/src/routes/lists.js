@@ -21,14 +21,19 @@ const {
     generateShareToken,
     getListByShareToken,
     getShareToken,
-    resetShareToken
+    resetShareToken,
+    renderSharePreview,
+    generateListPreview
 } = require('../controllers/listController');
 
 const router = express.Router();
 
 // Public routes
 router.get('/public', asyncHandler(getPublicLists));
-router.get('/share/:token', asyncHandler(getListByShareToken));
+router.get('/preview/:token', asyncHandler(generateListPreview));
+router.get('/s/:token', asyncHandler(renderSharePreview));
+router.get('/share/:token', asyncHandler(renderSharePreview));
+router.get('/share/:token/data', asyncHandler(getListByShareToken));
 router.get('/:id', optionalVerifyToken, loadList, asyncHandler(getListById));
 router.get('/:id/comments', loadList, asyncHandler(getListComments));
 

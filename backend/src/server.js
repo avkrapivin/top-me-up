@@ -14,10 +14,39 @@ const PORT = process.env.PORT || 5000;
 // Connect to database
 connectDB();
 
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
 // Security middleware
 app.use(helmet());
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL,
+    process.env.BACKEND_URL?.replace('/api', '')
+].filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (!allowed) return false;
+            const originHost = origin.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+            const allowedHost = allowed.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+            return originHost === allowedHost || origin === allowed;
+        });
+        
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            if (process.env.NODE_ENV !== 'production') {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']

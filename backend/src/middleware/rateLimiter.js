@@ -7,6 +7,7 @@ const createRateLimiter = (windowMs, max, message) => {
         message: { message },
         standardHeaders: true,
         legacyHeaders: false,
+        validate: { trustProxy: false, xForwardedForHeader: false },
     });
 };
 

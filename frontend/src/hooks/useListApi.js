@@ -162,7 +162,7 @@ export const useListByShareToken = (token) => {
     return useQuery({
         queryKey: ['list', 'share', token],
         queryFn: async () => {
-            const response = await api.get(`/lists/share/${token}`);
+            const response = await api.get(`/lists/share/${token}/data`);
             return response.data;
         },
         enabled: !!token,
