@@ -368,10 +368,21 @@ const renderSharePreview = async (req, res) => {
     try {
         const { token } = req.params;
 
-        const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
-        const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+        let frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+        let backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
 
-        const spaUrl = `${frontendUrl}/share/${token}`;
+        if (backendUrl.includes('ngrok') && !backendUrl.startsWith('https://')) {
+            backendUrl = backendUrl.replace('http://', 'https://');
+        }
+
+        let spaUrl;
+        if (frontendUrl.includes('localhost') && backendUrl.includes('ngrok')) {
+            spaUrl = `${backendUrl}/share/${token}`;
+        } else if (!frontendUrl.includes('localhost')) {
+            spaUrl = `${frontendUrl}/share/${token}`;
+        } else {
+            spaUrl = `${frontendUrl}/share/${token}`;
+        }
 
         const list = await List.findOne({ shareToken: token, isPublic: true }).populate('user', 'displayName');
         if (!list) {
@@ -398,7 +409,9 @@ const renderSharePreview = async (req, res) => {
         const descriptionRaw = list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'} on TopMeUp`;
         const safeDescription = htmlEscape(descriptionRaw);
 
-        const ogImage = `${backendUrl}/api/lists/preview/${token}`;
+        const listUpdatedAt = list.updatedAt || list.createdAt;
+        const version = Math.floor(new Date(listUpdatedAt).getTime() / 1000);
+        const ogImage = `${backendUrl}/api/lists/preview/${token}?v=${version}`;
 
         const html = `<!doctype html>
 <html lang="en">
@@ -450,12 +463,17 @@ const generateListPreview = async (req, res) => {
         const fetch = require('node-fetch');
 
         const list = await List.findOne({ shareToken: token, isPublic: true }).populate('user', 'displayName');
-        if (!list) return res.status(404).send('List not found');
+        if (!list) {
+            res.setHeader('Content-Type', 'image/png');
+            return res.status(404).send('List not found');
+        }
 
-        const baseWidth = 700;
+        const exportWidth = 700;
         const pagePadding = 30;
+        const gridMaxWidth = 660;
         const gridGap = 16;
         const cols = 2;
+        const rows = 5;
 
         const posterCfg = {
             movies: { w: 64, h: 96 },
@@ -467,37 +485,39 @@ const generateListPreview = async (req, res) => {
         const posterH = pc.h ?? Math.round(pc.w / pc.aspect);
 
         const cardPadV = 8;
-        const cardPadH = 8;
-        const gutterPosterText = 12;
+        const cardPadH = 10;
+        const cardGap = 10;
 
-        const textTitle = 14;
-        const textMeta = 12;
+        const textTitleSize = 14;
+        const textMetaSize = 12;
+        const textYearSize = 11;
 
-        const colWidth = Math.floor((baseWidth - pagePadding * 2 - gridGap) / cols);
-        const textBlockWidth = colWidth - cardPadH * 2 - posterW - gutterPosterText;
         const cardHeight = Math.max(posterH + cardPadV * 2, 84);
 
-        const rows = 5;
-        const headerTitle = 24;
-        const headerSub = 13;
-        const headerHeight = pagePadding + headerTitle + 5 + headerSub + 16;
-        const watermarkHeight = 30;
+        const headerTitleSize = 24;
+        const headerSubSize = 13;
+        const headerMarginBottom = 20;
+        const headerSubMargin = 5;
 
-        const baseHeight = headerHeight + rows * cardHeight + (rows - 1) * gridGap + pagePadding + watermarkHeight;
+        const headerHeight = pagePadding + headerTitleSize + headerSubMargin + headerSubSize + headerMarginBottom;
+
+        const watermarkPaddingTop = 30;
+        const watermarkPaddingBottom = 10;
+        const watermarkMarginTop = 20;
+        const watermarkHeight = watermarkPaddingTop + 14 + watermarkPaddingBottom;
+
+        const contentHeight = headerHeight + rows * cardHeight + (rows - 1) * gridGap + watermarkMarginTop + watermarkHeight + pagePadding;
 
         const outW = 1200, outH = 630;
 
-        const scaleByHeight = outH / baseHeight;
-        const scaleByWidth = outW / baseWidth;
-        const scale = Math.min(scaleByHeight, scaleByWidth);
-
+        const scale = outH / contentHeight;
         const S = (n) => Math.round(n * scale);
 
-        const contentW = S(baseWidth);
-        const contentH = S(baseHeight);
+        const scaledWidth = S(exportWidth);
+        const scaledHeight = S(contentHeight);
 
-        const offsetX = Math.floor((outW - contentW) / 2);
-        const offsetY = Math.floor((outH - contentH) / 2);
+        const offsetX = Math.floor((outW - scaledWidth) / 2);
+        const offsetY = Math.floor((outH - scaledHeight) / 2);
 
         const base = sharp({
             create: { width: outW, height: outH, channels: 3, background: { r: 255, g: 255, b: 255 } }
@@ -510,95 +530,123 @@ const generateListPreview = async (req, res) => {
 
         const headerSvg = `
           <svg width="${outW}" height="${S(headerHeight)}" xmlns="http://www.w3.org/2000/svg">
-            <text x="${outW / 2}" y="${S(pagePadding + headerTitle)}"
+            <text x="${outW / 2}" y="${S(pagePadding + headerTitleSize)}"
                   fill="#111827" font-family="Arial, Helvetica, sans-serif"
-                  font-weight="700" font-size="${S(headerTitle)}" text-anchor="middle">${title}</text>
-            <text x="${outW / 2}" y="${S(pagePadding + headerTitle + 5 + headerSub)}"
-                  fill="#6b7280" font-family="Arial, Helvetica, sans-serif"
-                  font-size="${S(headerSub)}" text-anchor="middle">by ${author}</text>
+                  font-weight="700" font-size="${S(headerTitleSize)}" text-anchor="middle">${title}</text>
+            <text x="${outW / 2}" y="${S(pagePadding + headerTitleSize + headerSubMargin + headerSubSize)}"
+                  fill="#666666" font-family="Arial, Helvetica, sans-serif"
+                  font-size="${S(headerSubSize)}" text-anchor="middle">by ${author}</text>
           </svg>`;
         composite.push({ input: Buffer.from(headerSvg), top: offsetY, left: 0 });
 
         const loadImg = async (url) => {
-            if (!url) return null;
+            if (!url) {
+                return null;
+            }
             try {
                 const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
                 const proxied = `${backendUrl}/api/proxy/img?url=${encodeURIComponent(url)}`;
-                const r = await fetch(proxied);
-                if (!r.ok) return null;
+
+                const r = await fetch(proxied, {
+                    headers: {
+                        'User-Agent': 'TopMeUp-Preview-Generator/1.0 (Social Media Bot)'
+                    },
+                    timeout: 10000
+                });
+
+                if (!r.ok) {
+                    return null;
+                }
+
                 const ab = await r.arrayBuffer();
-                return Buffer.from(ab);
-            } catch { return null; }
+                const buffer = Buffer.from(ab);
+                return buffer;
+            } catch (err) {
+                console.warn(`[Preview] Error loading image: ${url}`, err.message);
+                return null;
+            }
         };
+
         const ellipsis = (s, max) => (s && s.length > max ? s.slice(0, max - 1) + '…' : (s || ''));
 
         const slots = Array.from({ length: 10 }).map((_, i) => list.items?.[i] || null);
 
-        const colW = S(colWidth);
-        const padV = S(cardPadV);
-        const padH = S(cardPadH);
-        const gap = S(gridGap);
-        const pW = S(posterW);
-        const pH = S(posterH);
-        const tW = S(textBlockWidth);
-        const mid = S(gutterPosterText);
-        const cardH = S(cardHeight);
-        const headH = S(headerHeight);
-        const pad = S(pagePadding);
+        const sGridMaxW = S(gridMaxWidth);
+        const sGap = S(gridGap);
+        const sColW = S((gridMaxWidth - gridGap) / cols);
+        const sPW = S(posterW);
+        const sPH = S(posterH);
+        const sPadV = S(cardPadV);
+        const sPadH = S(cardPadH);
+        const sCardGap = S(cardGap);
+        const sCardH = S(cardHeight);
+        const sHeadH = S(headerHeight);
+        const sPad = S(pagePadding);
+        const sTextW = sColW - sPadH * 2 - sPW - sCardGap;
+
+        const gridStartX = offsetX + Math.floor((scaledWidth - sGridMaxW) / 2);
+
+        let loadedPosters = 0;
+        let failedPosters = 0;
 
         for (let i = 0; i < slots.length; i++) {
             const row = Math.floor(i / cols);
             const col = i % cols;
 
-            const x = offsetX + pad + col * (colW + gap);
-            const y = offsetY + headH + row * (cardH + gap);
+            const cardX = gridStartX + col * (sColW + sGap);
+            const cardY = offsetY + sHeadH + row * (sCardH + sGap);
 
             const item = slots[i];
+
+            const posterX = cardX + sPadH;
+            const posterY = cardY + sPadV;
 
             if (item?.cachedData?.posterUrl) {
                 const raw = await loadImg(item.cachedData.posterUrl);
                 if (raw) {
-                    const fitted = await sharp(raw).resize(pW, pH, { fit: 'cover', position: 'center' }).toBuffer();
-                    composite.push({ input: fitted, top: y + padV, left: x + padH });
+                    const fitted = await sharp(raw).resize(sPW, sPH, { fit: 'cover', position: 'center' }).toBuffer();
+                    composite.push({ input: fitted, top: posterY, left: posterX });
+                    loadedPosters++;
                 } else {
-                    const ph = await sharp({ create: { width: pW, height: pH, channels: 3, background: { r: 229, g: 231, b: 235 } } }).toBuffer();
-                    composite.push({ input: ph, top: y + padV, left: x + padH });
+                    const ph = await sharp({ create: { width: sPW, height: sPH, channels: 3, background: { r: 240, g: 240, b: 240 } } }).toBuffer();
+                    composite.push({ input: ph, top: posterY, left: posterX });
+                    failedPosters++;
                 }
             } else {
-                const ph = await sharp({ create: { width: pW, height: pH, channels: 3, background: { r: 229, g: 231, b: 235 } } }).toBuffer();
-                composite.push({ input: ph, top: y + padV, left: x + padH });
+                const ph = await sharp({ create: { width: sPW, height: sPH, channels: 3, background: { r: 240, g: 240, b: 240 } } }).toBuffer();
+                composite.push({ input: ph, top: posterY, left: posterX });
             }
 
             if (!item) continue;
 
             const year = item.cachedData?.year ? String(item.cachedData.year) : '';
             const artist = list.category === 'music' ? (item.cachedData?.artist || '') : '';
-            const t1 = ellipsis(item.title || '', Math.max(10, Math.floor(tW / Math.max(7, S(7)))));
-            const t2 = list.category === 'music' && artist ? ellipsis(artist, Math.max(8, Math.floor(tW / Math.max(8, S(8))))) : '';
-            const t3 = year;
+            const t1 = ellipsis(item.title || 'No title', Math.max(10, Math.floor(sTextW / 7)));
+            const t2 = list.category === 'music' && artist ? ellipsis(artist, Math.max(8, Math.floor(sTextW / 8))) : '';
+            const t3 = year ? `(${year})` : '';
 
-            const tx = x + padH + pW + mid;
-            const ty = y + padV + S(4);
+            const textX = cardX + sPadH + sPW + sCardGap;
+            const textY = cardY + sPadV + S(4);
 
             const textSvg = `
-            <svg width="${tW}" height="${pH}" xmlns="http://www.w3.org/2000/svg">
+            <svg width="${sTextW}" height="${sPH}" xmlns="http://www.w3.org/2000/svg">
               <style>
-                .t1{fill:#111827;font-weight:600;font-size:${S(textTitle)}px;font-family:Arial, Helvetica, sans-serif}
-                .t2{fill:#4b5563;font-size:${S(textMeta)}px;font-family:Arial, Helvetica, sans-serif}
-                .t3{fill:#6b7280;font-size:${S(textMeta)}px;font-family:Arial, Helvetica, sans-serif}
+                .t1{fill:#111827;font-weight:600;font-size:${S(textTitleSize)}px;font-family:Arial, Helvetica, sans-serif}
+                .t2{fill:#666666;font-size:${S(textMetaSize)}px;font-family:Arial, Helvetica, sans-serif}
+                .t3{fill:#888888;font-size:${S(textYearSize)}px;font-family:Arial, Helvetica, sans-serif}
               </style>
               <text x="0" y="${S(16)}" class="t1">${esc(t1)}</text>
               ${t2 ? `<text x="0" y="${S(34)}" class="t2">${esc(t2)}</text>` : ''}
               ${t3 ? `<text x="0" y="${S(t2 ? 52 : 34)}" class="t3">${esc(t3)}</text>` : ''}
             </svg>`;
-            composite.push({ input: Buffer.from(textSvg), top: ty, left: tx });
+            composite.push({ input: Buffer.from(textSvg), top: textY, left: textX });
         }
 
-        const watermarkY = offsetY + headH + rows * cardH + (rows - 1) * gap + pad;
+        const watermarkY = offsetY + sHeadH + rows * sCardH + (rows - 1) * sGap + S(watermarkMarginTop);
         const wmSvg = `
           <svg width="${outW}" height="${S(watermarkHeight)}" xmlns="http://www.w3.org/2000/svg">
-            <text x="${outW - S(16)}" y="${S(watermarkHeight - 8)}"
-                  fill="rgba(0,0,0,0.35)" font-weight="700"
+            <text x="${outW - S(16)}" y="${S(watermarkPaddingTop + 14)}"
+                  fill="rgba(0,0,0,0.4)" font-weight="700"
                   font-size="${S(14)}" font-family="Arial, Helvetica, sans-serif"
                   text-anchor="end">topmeup.app</text>
           </svg>`;
@@ -609,9 +657,13 @@ const generateListPreview = async (req, res) => {
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 'public, max-age=86400');
         res.setHeader('Content-Disposition', 'inline; filename="preview.png"');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+
         return res.send(finalImage);
     } catch (e) {
-        console.error('Error generating preview:', e);
+        console.error('[Preview] Error generating preview:', e);
+        res.setHeader('Content-Type', 'image/png');
         return res.status(500).send('Error generating preview');
     }
 };
