@@ -162,6 +162,12 @@ export const useAuthStore = create(
                 }));
             },
 
+            updateDisplayName: (displayName) => {
+                set((state) => ({
+                    user: state.user ? { ...state.user, displayName } : state.user
+                }));
+            },
+
             clearError: () => {
                 set({ error: null });
             },

@@ -1,4 +1,5 @@
-const { User } = require('../models');
+const { User, List } = require('../models');
+const { errorResponse } = require('../utils/responseHelper');
 
 // Create or update user after authentication
 const createOrUpdateuser = async (req, res) => {
@@ -55,26 +56,81 @@ const createOrUpdateuser = async (req, res) => {
     }
 };
 
+const getAggregatedStats = async (userId) => {
+    const aggregate = await List.aggregate([
+        { $match: { userId } },
+        {
+            $group: {
+                _id: '$userId',
+                listsCreated: { $sum: 1 },
+                totalLikes: { $sum: '$likesCount' },
+                totalViews: { $sum: '$viewsCount' }
+            }
+        }
+    ]);
+
+    if (!aggregate.length) {
+        return { listsCreated: 0, totalLikes: 0, totalViews: 0 };
+    }
+
+    const { listsCreated, totalLikes, totalViews } = aggregate[0];
+    return { listsCreated, totalLikes, totalViews };
+};
+
 // Get user profile
 const getUserProfile = async (req, res) => {
     try {
         const user = req.user;
+        const statsFromLists = await getAggregatedStats(user._id); 
 
-        res.json({
-            success: true,
-            user: user.toPublicJSON()
+        return successResponse(res, {
+            _id: user._id,
+            email: user.email,
+            displayName: user.displayName,
+            stats: statsFromLists,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         });
     } catch (error) {
         console.error('Get user profile error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to get user profile',
-            error: error.message
-        });
+        return errorResponse(res, 'Failed to get user profile', 500);
     }
 };
 
+const updateProfile = async (req, res) => {
+    try {
+        const { displayName } = req.body;
+        const user = req.user;
+
+        if (!displayName || typeof displayName !== 'string' || displayName.trim().length === 0) {
+            return errorResponse(res, 'Display name is required and must be a non-empty string', 400);
+        }
+
+        if (displayName.length > 100) {
+            return errorResponse(res, 'Display name must be less than 100 characters', 400);
+        }
+
+        user.displayName = displayName.trim();
+        await user.save();
+
+        const statsFromLists = await getAggregatedStats(user._id);
+
+        return successResponse(res, {
+            _id: user._id,
+            email: user.email,
+            displayName: user.displayName,
+            stats: statsFromLists,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        }, 'Profile updated successfully');
+    } catch (error) {
+        console.error('Update profile error:', error);
+        return errorResponse(res, 'Failed to update profile', 500);
+    }
+}
+
 module.exports = {
     createOrUpdateuser,
-    getUserProfile
+    getUserProfile,
+    updateProfile
 }

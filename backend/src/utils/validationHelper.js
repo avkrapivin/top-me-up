@@ -62,6 +62,10 @@ const commentSchema = Joi.object({
     content: Joi.string().trim().min(1).max(500).required()
 });
 
+const profileUpdateSchema = Joi.object({
+    displayName: Joi.string().trim().min(1).max(100).required()
+});
+
 // Middleware for validation
 const validateList = (req, res, next) => {
     const { error } = listSchema.validate(req.body);
@@ -111,9 +115,22 @@ const validateComment = (req, res, next) => {
     next();
 };
 
+const validateProfileUpdate = (req, res, next) => {
+    const { error } = profileUpdateSchema.validate(req.body);
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details[0].message
+        });
+    }
+    next();
+}
+
 module.exports = {
     validateList,
     validateListUpdate,
     validateItem,
-    validateComment
+    validateComment,
+    validateProfileUpdate
 }

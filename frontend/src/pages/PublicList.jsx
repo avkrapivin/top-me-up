@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useListByShareToken } from '../hooks/useListApi';
 import ListCard from '../components/Lists/ListCard';
+import Layout from '../components/Layout/Layout';
 
 function PublicList() {
     const { token } = useParams();
@@ -62,72 +63,86 @@ function PublicList() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-            </div>
+            <Layout>
+                <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                    <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+            </Layout>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
-                            Error
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-300">
-                            {error.message || 'List not found or not available'}
-                        </p>
+            <Layout>
+                <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                            <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
+                                Error
+                            </h1>
+                            <p className="text-gray-600 dark:text-gray-300">
+                                {error.message || 'List not found or not available'}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Layout>
         );
     }
 
     if (!listData?.data) {
-        return null;
+        return (
+            <Layout>
+                <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
+                    <p className="text-gray-600 dark:text-gray-300">
+                        List not found or not available
+                    </p>
+                </div>
+            </Layout>
+        );
     }
 
     const list = listData.data;
     const authorName = list.user?.displayName || 'User';
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                        {list.title}
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        by {authorName}
-                    </p>
-                    {list.description && (
-                        <p className="text-gray-500 dark:text-gray-400 mt-2">
-                            {list.description}
+        <Layout>
+            <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            {list.title}
+                        </h1>
+                        <p className="text-gray-600 dark:text-gray-300 mb-2">
+                            by {authorName}
                         </p>
-                    )}
-                    <div className="flex gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{list.items?.length || 0}/10 items</span>
-                        {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
-                        {list.likesCount > 0 && <span>{list.likesCount} likes</span>}
+                        {list.description && (
+                            <p className="text-gray-500 dark:text-gray-400 mt-2">
+                                {list.description}
+                            </p>
+                        )}
+                        <div className="flex gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
+                            <span>{list.items?.length || 0}/10 items</span>
+                            {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
+                            {list.likesCount > 0 && <span>{list.likesCount} likes</span>}
+                        </div>
                     </div>
-                </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
-                    <div className="grid grid-cols-2 gap-4">
-                        {Array.from({ length: 10 }).map((_, index) => {
-                            const item = list.items?.[index];
-                            return item ? (
-                                <ListItemPreview key={item._id || item.externalId} item={item} />
-                            ) : (
-                                <EmptySlot key={`empty-${index}`} category={list.category} />
-                            );
-                        })}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
+                        <div className="grid grid-cols-2 gap-4">
+                            {Array.from({ length: 10 }).map((_, index) => {
+                                const item = list.items?.[index];
+                                return item ? (
+                                    <ListItemPreview key={item._id || item.externalId} item={item} />
+                                ) : (
+                                    <EmptySlot key={`empty-${index}`} category={list.category} />
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Layout>
     );
 }
 

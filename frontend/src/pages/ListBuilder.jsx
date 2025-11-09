@@ -1,7 +1,12 @@
 import ListBuilderComponent from '../components/Lists/ListBuilder';
+import Layout from '../components/Layout/Layout';
 
 function ListBuilder() {
-    return <ListBuilderComponent />;
+    return (
+        <Layout>
+            <ListBuilderComponent />
+        </Layout>
+    );
   }
   
   export default ListBuilder;

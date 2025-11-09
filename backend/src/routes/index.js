@@ -19,7 +19,7 @@ router.get('/health', (req, res) => {
 });
 
 // Auth routes
-router.use('/auth', authLimiter, authRoutes);
+router.use('/auth', authRoutes);
 
 // List routes
 router.use('/lists', listRoutes);

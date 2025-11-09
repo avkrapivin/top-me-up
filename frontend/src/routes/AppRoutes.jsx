@@ -3,6 +3,7 @@ import Home from '../pages/Home';
 import Dashboard from '../pages/Dashboard';
 import ListBuilder from '../pages/ListBuilder';
 import PublicList from '../pages/PublicList';
+import Profile from '../pages/Profile';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import ProtectedRoute from '../components/Auth/ProtectedRoute';
@@ -38,6 +39,16 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             />
+
+            <Route
+                path='/profile'
+                element={
+                    <ProtectedRoute requireAuth={true}>
+                        <Profile />
+                    </ProtectedRoute>
+                }
+            />
+
             <Route 
                 path='/builder' 
                 element={
