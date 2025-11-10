@@ -1,5 +1,5 @@
 const { User, List } = require('../models');
-const { errorResponse } = require('../utils/responseHelper');
+const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 // Create or update user after authentication
 const createOrUpdateuser = async (req, res) => {

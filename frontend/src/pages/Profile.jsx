@@ -20,6 +20,14 @@ function Profile() {
     });
     const [passwordError, setPasswordError] = useState('');
 
+    const isPasswordDirty = useMemo(
+        () =>
+            passwordForm.currentPassword.trim().length > 0 ||
+            passwordForm.newPassword.trim().length > 0 ||
+            passwordForm.confirmPassword.trim().length > 0,
+        [passwordForm]
+    );
+
     useEffect(() => {
         const resolvedName = profile?.displayName ?? authUser?.displayName ?? '';
         setDisplayName(resolvedName);
@@ -29,7 +37,7 @@ function Profile() {
     const originalDisplayName = useMemo(
         () => profile?.displayName ?? authUser?.displayName ?? '',
         [profile, authUser]
-    ); 
+    );
 
     const handleSave = async () => {
         const trimmed = displayName.trim();
@@ -92,10 +100,13 @@ function Profile() {
             showSuccess('Password updated successfully');
             resetPasswordForm();
         } catch (error) {
-            const message =
-                error.code === 'auth/wrong-password'
-                    ? 'Current password is incorrect'
-                    : error.message || 'Failed to update password';
+            const isWrongPassword =
+                error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential';
+
+            const message = isWrongPassword
+                ? 'Current password is incorrect'
+                : error.message || 'Failed to update password';
+
             setPasswordError(message);
             showError(message);
         }
@@ -153,31 +164,30 @@ function Profile() {
                                     type="text"
                                     value={displayName}
                                     onChange={(e) => {
-                                        setDisplayName(e.target.value);
-                                        setIsDirty(true);
+                                        const nextValue = e.target.value;
+                                        setDisplayName(nextValue);
+                                        setIsDirty(nextValue.trim() !== originalDisplayName.trim());
                                     }}
                                     maxLength={100}
                                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="Enter your display name"
                                 />
-                                {isDirty && (
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={handleSave}
-                                            disabled={updateProfileMutation.isPending}
-                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {updateProfileMutation.isPending ? 'Saving…' : 'Save'}
-                                        </button>
-                                        <button
-                                            onClick={handleCancel}
-                                            disabled={updateProfileMutation.isPending}
-                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition disabled:opacity-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={!isDirty || updateProfileMutation.isPending}
+                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {updateProfileMutation.isPending ? 'Saving…' : 'Save'}
+                                    </button>
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={!isDirty || updateProfileMutation.isPending}
+                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {displayName.length}/100 characters
@@ -202,7 +212,7 @@ function Profile() {
 
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                            Password 
+                            Password
                         </h2>
                         <div className="flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
@@ -242,17 +252,17 @@ function Profile() {
                                         placeholder="Repeat new password"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
                                     <button
                                         onClick={handlePasswordSave}
-                                        disabled={updatePasswordMutation.isPending}
+                                        disabled={!isPasswordDirty || updatePasswordMutation.isPending}
                                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {updatePasswordMutation.isPending ? 'Saving…' : 'Save'}
                                     </button>
                                     <button
                                         onClick={resetPasswordForm}
-                                        disabled={updatePasswordMutation.isPending}
+                                        disabled={!isPasswordDirty || updatePasswordMutation.isPending}
                                         className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition disabled:opacity-50"
                                     >
                                         Cancel
