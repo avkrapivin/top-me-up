@@ -9,7 +9,7 @@ const posterConfigByCategory = {
 
 const getPosterConfig = (category) => posterConfigByCategory[category] || posterConfigByCategory.movies;
 
-function ListCard({ list, onDelete, showActions = false }) {
+function ListCard({ list, onDelete, showActions = false, linkTo }) {
     const getCategoryLabel = (category) => {
         switch (category) {
             case 'movies':
@@ -33,10 +33,11 @@ function ListCard({ list, onDelete, showActions = false }) {
     const slots = Array(10).fill(null).map((_, index) => {
         return list.items?.[index] || null;
     });
+    const destination = linkTo || `/builder/${list._id}`;
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-            <Link to={`/builder/${list._id}`} className="block p-6">
+            <Link to={destination} className="block p-6">
                 {/* Header */}
                 <div className="mb-4">
                     <div className="mb-2">
@@ -163,9 +164,11 @@ ListCard.propTypes = {
         items: PropTypes.array,
         isPublic: PropTypes.bool,
         likesCount: PropTypes.number,
+        shareToken: PropTypes.string,
     }).isRequired,
     onDelete: PropTypes.func,
     showActions: PropTypes.bool,
+    linkTo: PropTypes.string,
 };
 
 ListItemPreview.propTypes = {

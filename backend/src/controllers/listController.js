@@ -1,6 +1,7 @@
 const { List, User, Comment } = require('../models');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHelper');
 const { createPagination, createFilter, createSort } = require('../utils/paginationHelper');
+const mongoose = require('mongoose');
 
 // Get lists of user
 const getUserLists = async (req, res) => {
@@ -68,29 +69,43 @@ const createList = async (req, res) => {
 // Get list by ID
 const getListById = async (req, res) => {
     const list = req.resource;
-
-    // Check if list is public or owned by the user
     const uid = req.auth?.uid;
+    
+    const currentUser = uid
+        ? await User.findOne({ firebaseUid: uid }).select('_id').lean()
+        : null;
+    
+    // Check if list is public or owned by the user
     if (!list.isPublic) {
-        if (!uid) return errorResponse(res, 'Authentication required', 401);
-        const user = await User.findOne({ firebaseUid: uid });
-        if (!user || list.userId.toString() !== user._id.toString()) {
+        if (!currentUser) {
+            return errorResponse(res, 'Authentication required', 401);
+        }
+        if (list.userId.toString() !== currentUser._id.toString()) {
             return errorResponse(res, 'Not authorized', 403);
         }
     }
 
-    await list.populate('user', 'displayName');
-
-    const isOwner = uid && await User.findOne({ firebaseUid: uid }).then(user =>
-        user && list.userId.toString() === user._id.toString()
-    );
+    const isOwner = currentUser && list.userId.toString() === currentUser._id.toString();
 
     // Increment views count
     if (!isOwner) {
         await list.incrementViews();
     }
 
-    return successResponse(res, list);
+    const owner = await User.findById(list.userId)
+        .select('_id displayName')
+        .lean();
+
+    const payload = list.toObject({ virtuals: true });
+    payload.user = owner
+        ? { _id: owner._id.toString(), displayName: owner.displayName }
+        : null;
+
+    payload.userHasLiked = currentUser
+        ? list.likes.some((id) => id.equals(currentUser._id))
+        : false;
+
+    return successResponse(res, payload);
 };
 
 // Update list
@@ -129,29 +144,124 @@ const deleteList = async (req, res) => {
 
 // Get comments for a list
 const getListComments = async (req, res) => {
-    const { id } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    const { limit = 20, cursor } = req.query;
+    const list = req.resource;
+    const limitValue = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
 
-    const comments = await Comment.find({
-        listId: id,
+    let currentUserId = null;
+    if (req.auth?.uid) {
+        const currentUser = await User.findOne({ firebaseUid: req.auth.uid })
+            .select('_id')
+            .lean();
+        currentUserId = currentUser?._id?.toString() ?? null;
+    }
+
+    const baseFilter = {
+        listId: list._id,
         isDeleted: false,
         parentCommentId: null
-    })
-        .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit)
-        .populate('user', 'displayName')
-        .populate('replies');
+    };
+
+    if (cursor) {
+        if (!mongoose.Types.ObjectId.isValid(cursor)) {
+            return errorResponse(res, 'Invalid cursor', 400);
+        }
+        baseFilter._id = { $lt: new mongoose.Types.ObjectId(cursor) };
+    }
+
+    const rawComments = await Comment.find(baseFilter)
+        .sort({ _id: -1 })
+        .limit(limitValue + 1)
+        .lean();
+
+    const hasNext = rawComments.length > limitValue;
+    const parentComments = hasNext ? rawComments.slice(0, limitValue) : rawComments;
+    const nextCursor = hasNext
+        ? parentComments[parentComments.length - 1]._id.toString()
+        : null;
+
+    const parentIds = parentComments.map((comment) => comment._id);
+    let replies = [];
+    if (parentIds.length) {
+        replies = await Comment.find({
+            parentCommentId: { $in: parentIds },
+            isDeleted: false
+        })
+            .sort({ _id: 1 })
+            .lean();
+    }
+
+    const userIds = new Set();
+    const normalize = (doc) => {
+        doc._id = doc._id.toString();
+        doc.listId = doc.listId?.toString();
+        doc.userId = doc.userId?.toString();
+        doc.parentCommentId = doc.parentCommentId?.toString();
+        doc.likes = (doc.likes || []).map((id) => id.toString());
+        if (doc.userId) userIds.add(doc.userId);
+        return doc;
+    };
+
+    parentComments.forEach(normalize);
+    replies.forEach(normalize);
+
+    let usersMap = new Map();
+    if (userIds.size) {
+        const users = await User.find({ _id: { $in: Array.from(userIds) } })
+            .select('_id displayName')
+            .lean();
+        usersMap = new Map(
+            users.map((user) => [
+                user._id.toString(),
+                { _id: user._id.toString(), displayName: user.displayName }
+            ])
+        );
+    }
+
+    const userLikes = (likes) =>
+        currentUserId ? likes.some((id) => id === currentUserId) : false;
+
+    const repliesByParent = replies.reduce((acc, reply) => {
+        if (!reply.parentCommentId) return acc;
+        const { likes, ...rest } = reply;
+        const decoratedReply = {
+            ...rest,
+            user: usersMap.get(reply.userId) || null,
+            userHasLiked: userLikes(likes),
+            likesCount: likes.length
+        };
+        if (!acc[reply.parentCommentId]) {
+            acc[reply.parentCommentId] = [];
+        }
+        acc[reply.parentCommentId].push(decoratedReply);
+        return acc;
+    }, {});
+
+    const responseData = parentComments.map((comment) => {
+        const { likes, ...rest } = comment;
+        return {
+            ...rest,
+            user: usersMap.get(comment.userId) || null,
+            userHasLiked: userLikes(likes),
+            likesCount: likes.length,
+            replies: repliesByParent[comment._id] || []
+        };
+    });
 
     const total = await Comment.countDocuments({
-        listId: id,
+        listId: list._id,
         isDeleted: false,
         parentCommentId: null
     });
 
-    const pagination = createPagination(page, limit, total);
+    const pagination = {
+        limit: limitValue,
+        total,
+        hasNext,
+        nextCursor
+    }; 
 
-    return paginatedResponse(res, comments, pagination);
+    return paginatedResponse(res, responseData, pagination);
 };
 
 // Create a new comment for a list
@@ -668,6 +778,64 @@ const generateListPreview = async (req, res) => {
     }
 };
 
+const likeList = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+
+    if (!list.isPublic) {
+        return errorResponse(res, 'Cannot like a private list', )
+    }
+
+    if (list.userId.toString() === userId.toString()) {
+        return errorResponse(res, 'Cannot like your own list', 400);
+    }
+
+    if (list.likes.some((id) => id.equals(userId))) {
+        return successResponse(res, {
+            listId: list._id,
+            likesCount: list.likesCount,
+            userHasLiked: true
+        }, 'List already liked');
+    }
+
+    const updatedList = await list.addLike(userId);
+    await User.findByIdAndUpdate(list.userId, { $inc: { 'stats.totalLikes': 1 } }).catch((err) => {
+        console.warn('Failed to increment list owner likes:', err.message);
+    });
+
+    return successResponse(res, {
+        listId: list._id,
+        likesCount: updatedList.likesCount,
+        userHasLiked: true
+    }, 'List liked successfully');
+};
+
+const unlikeList = async (req, res) => {
+    const list = req.resource;
+    const userId = req.user._id;
+
+    if (!list.likes.some((id) => id.equals(userId))) {
+        return successResponse(res, {
+            listId: list._id,
+            likesCount: list.likesCount,
+            userHasLiked: false
+        }, 'List was not liked');
+    }
+
+    const updatedList = await list.removeLike(userId);
+    await User.findByIdAndUpdate(list.userId, { $inc: { 'stats.totalLikes': -1 } }).catch((err) => {
+        console.warn('Failed to decrement list owner likes:', err.message);
+    });
+
+    return successResponse(res, {
+        listId: list._id,
+        likesCount: updatedList.likesCount,
+        userHasLiked: false
+    }, 'List unliked successfully');
+};
+
+
+
 module.exports = {
     getUserLists,
     getPublicLists,
@@ -686,5 +854,7 @@ module.exports = {
     getShareToken,
     resetShareToken,
     renderSharePreview,
-    generateListPreview
+    generateListPreview,
+    likeList,
+    unlikeList
 };

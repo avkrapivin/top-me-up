@@ -66,7 +66,7 @@ const updateComment = async (req, res) => {
     await comment.save();
 
     return successResponse(res, comment, 'Comment updated successfully');
-}
+};
 
 // Delete a comment
 const deleteComment = async (req, res) => {
@@ -81,9 +81,57 @@ const deleteComment = async (req, res) => {
     return successResponse(res, comment, 'Comment deleted successfully');
 }
 
+const likeComment = async (req, res) => {
+    const comment = req.resource;
+    const userId = req.user._id;
+
+    if (comment.isDeleted) {
+        return errorResponse(res, 'Cannot like a deleted comment', 400);
+    }
+
+    if (comment.likes.some((id) => id.equals(userId))) {
+        return successResponse(res, {
+            commentId: comment._id,
+            likesCount: comment.likesCount,
+            userHasLiked: true
+        }, 'Comment already liked');
+    }
+
+    const updatedComment = await comment.addLike(userId);
+
+    return successResponse(res, {
+        commentId: comment._id,
+        likesCount: updatedComment.likesCount,
+        userHasLiked: true
+    }, 'Comment liked successfully');
+};
+
+const unlikeComment = async (req, res) => {
+    const comment = req.resource;
+    const userId = req.user._id;
+
+    if (!comment.likes.some((id) => id.equals(userId))) {
+        return successResponse(res, {
+            commentId: comment._id,
+            likesCount: comment.likesCount,
+            userHasLiked: false
+        }, 'Comment was not liked');
+    }
+
+    const updatedComment = await comment.removeLike(userId);
+
+    return successResponse(res, {
+        commentId: comment._id,
+        likesCount: updatedComment.likesCount,
+        userHasLiked: false
+    }, 'Comment unliked successfully');
+};
+
 module.exports = {
     getListComments,
     createComment,
     updateComment,
-    deleteComment
+    deleteComment,
+    likeComment,
+    unlikeComment
 };

@@ -23,7 +23,9 @@ const {
     getShareToken,
     resetShareToken,
     renderSharePreview,
-    generateListPreview
+    generateListPreview,
+    likeList,
+    unlikeList
 } = require('../controllers/listController');
 
 const router = express.Router();
@@ -35,7 +37,7 @@ router.get('/s/:token', asyncHandler(renderSharePreview));
 router.get('/share/:token', asyncHandler(renderSharePreview));
 router.get('/share/:token/data', asyncHandler(getListByShareToken));
 router.get('/:id', optionalVerifyToken, loadList, asyncHandler(getListById));
-router.get('/:id/comments', loadList, asyncHandler(getListComments));
+router.get('/:id/comments', optionalVerifyToken,loadList, asyncHandler(getListComments));
 
 // Private routes
 router.use(verifyToken);
@@ -43,6 +45,8 @@ router.use(requireUser);
 
 router.get('/', asyncHandler(getUserLists));
 router.post('/', validateList, asyncHandler(createList));
+router.post('/:id/like', loadList, asyncHandler(likeList));
+router.delete('/:id/like', loadList, asyncHandler(unlikeList));
 router.put('/:id', loadList, requireOwnership(), validateListUpdate, asyncHandler(updateList));
 router.delete('/:id', loadList, requireOwnership(), asyncHandler(deleteList));
 router.post('/:id/comments', loadList, authLimiter, validateComment, asyncHandler(createListComment));

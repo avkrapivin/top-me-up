@@ -7,7 +7,9 @@ const { validateComment } = require('../utils/validationHelper');
 const asyncHandler = require('../middleware/asyncHandler');
 const { 
     updateComment,
-    deleteComment
+    deleteComment,
+    likeComment,
+    unlikeComment
 } = require('../controllers/commentController');
 
 const router = express.Router();
@@ -16,6 +18,10 @@ const router = express.Router();
 router.use(verifyToken);
 router.use(requireUser);
 router.use(authLimiter);
+
+router.post('/:id/like', loadComment, asyncHandler(likeComment));
+router.delete('/:id/like', loadComment, asyncHandler(unlikeComment));
+
 
 router.put('/:id', loadComment, requireOwnership('userId'), validateComment, asyncHandler(updateComment));
 router.delete('/:id', loadComment, requireOwnership('userId'), asyncHandler(deleteComment));

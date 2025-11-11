@@ -12,6 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:api": "jest tests/test-api-endpoints.test.js",
+    "test:likes": "jest tests/likes-comments.integration.test.js",
     "test:models": "jest tests/test-models.test.js",
     "test:search": "jest tests/test-search-api.test.js",
     "test:services": "jest tests/services/",

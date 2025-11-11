@@ -125,14 +125,16 @@ listSchema.methods.incrementViews = function() {
 };
 
 listSchema.methods.addLike = function(userId) {
-    if (!this.likes.includes(userId)) {
+    const normalizedUserId = userId?.toString?.() ?? String(userId);
+    if (!this.likes.some((id) => id.equals(normalizedUserId))) {
         this.likes.push(userId);
     }
     return this.save();
 };
 
 listSchema.methods.removeLike = function(userId) {
-    this.likes = this.likes.filter(id => !id.equals(userId));
+    const normalizedUserId = userId?.toString?.() ?? String(userId);
+    this.likes = this.likes.filter((id) => !id.equals(normalizedUserId));
     return this.save();
 };
 

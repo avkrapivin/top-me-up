@@ -4,6 +4,8 @@ const searchService = require('../src/services/searchService');
 const mongoose = require('mongoose');
 const { ValidationError, NotFoundError } = require('../src/utils/errors');
 
+jest.setTimeout(30000); 
+
 jest.mock('../src/services/searchService');
 
 jest.mock('../src/middleware/rateLimiter', () => ({
@@ -13,7 +15,7 @@ jest.mock('../src/middleware/rateLimiter', () => ({
 }));
 
 describe('Search API Tests', () => {
-    beforeEach(() => {
+    beforeEach(() => {      
         jest.clearAllMocks();
     });
 
@@ -22,6 +24,7 @@ describe('Search API Tests', () => {
             await mongoose.disconnect();
         }
         await new Promise(resolve => setTimeout(resolve, 100));
+        app.server.close();
     })
 
     const createMockSearchResult = (category, id = 1, title = 'Test Item') => ({

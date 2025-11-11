@@ -4,6 +4,8 @@ const app = require('../src/server');
 const { User, List, Comment, Statistics } = require('../src/models');
 const { createMockFirebaseToken } = require('./test-auth-mock');
 
+jest.setTimeout(30000); 
+
 describe('API Endpoints Tests', () => {
     let testUser;
     let testList;
@@ -11,11 +13,7 @@ describe('API Endpoints Tests', () => {
     let authToken;
 
     beforeAll(async () => {
-        // Connect to test database
-        // if (mongoose.connection.readyState === 0) {
-        //     const testURI = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI?.replace('topmeup', 'topmeup_test');
-        //     await mongoose.connect(testURI);
-        // }
+        await mongoose.connection.asPromise();
 
         // Clean up database
         await Promise.all([
@@ -56,6 +54,7 @@ describe('API Endpoints Tests', () => {
 
     afterAll(async () => {
         await mongoose.disconnect();
+        app.server.close();
     });
 
     describe('Health Check', () => {

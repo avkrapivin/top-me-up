@@ -86,8 +86,9 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 })
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
 module.exports = app;
+module.exports.server = server;

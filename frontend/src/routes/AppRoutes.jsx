@@ -4,6 +4,7 @@ import Dashboard from '../pages/Dashboard';
 import ListBuilder from '../pages/ListBuilder';
 import PublicList from '../pages/PublicList';
 import Profile from '../pages/Profile';
+import Explore from '../pages/Explore';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import ProtectedRoute from '../components/Auth/ProtectedRoute';
@@ -12,6 +13,7 @@ function AppRoutes() {
     return (
         <Routes>
             <Route path='/' element={<Home />} />
+            <Route path='/explore' element={<Explore />} />
             <Route path='/list/:id' element={<PublicList />} />
 
             <Route 
