@@ -39,9 +39,9 @@ function SearchBox({ category, onSelectItem, placeholder = 'Search...' }) {
 
     const handleInputChange = (e) => {
         const value = e.target.value;
+        setQuery(value);
         startTransition(() => {
-            setQuery(value);
-            setIsOpen(value.length >= 2);
+            setIsOpen(value.trim().length >= 2);
         });
     };
 

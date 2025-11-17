@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import PropTypes from 'prop-types';
+import LikeButton from '../Social/LikeButton';
 
 const posterConfigByCategory = {
     movies: { width: 64, height: 96, imageClass: 'object-cover', containerBg: 'bg-gray-200 dark:bg-gray-700' },
@@ -9,7 +10,7 @@ const posterConfigByCategory = {
 
 const getPosterConfig = (category) => posterConfigByCategory[category] || posterConfigByCategory.movies;
 
-function ListCard({ list, onDelete, showActions = false, linkTo }) {
+function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, isLiked, isLikePending }) {
     const getCategoryLabel = (category) => {
         switch (category) {
             case 'movies':
@@ -34,6 +35,11 @@ function ListCard({ list, onDelete, showActions = false, linkTo }) {
         return list.items?.[index] || null;
     });
     const destination = linkTo || `/builder/${list._id}`;
+
+    const handleLikeClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
@@ -72,13 +78,25 @@ function ListCard({ list, onDelete, showActions = false, linkTo }) {
                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-4">
                         <span>{list.items?.length || 0}/10 items</span>
-                        <span className={list.isPublic ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}>
-                            {list.isPublic ? 'Public' : 'Private'}
-                        </span>
                     </div>
-                    {list.likesCount > 0 && (
-                        <span>{list.likesCount} likes</span>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {list.viewsCount > 0 && (
+                            <span>{list.viewsCount} views</span>
+                        )}
+                        {list.commentsCount > 0 && (
+                            <span>{list.commentsCount} comments</span>
+                        )}
+                        <div onClick={handleLikeClick}>
+                            <LikeButton
+                                count={list.likesCount ?? 0}
+                                isLiked={isLiked ?? false}
+                                onToggle={onLikeToggle}
+                                disabled={isLikePending || !onLikeToggle}
+                                size="sm"
+                                label="Like for list"
+                            />
+                        </div>
+                    </div>
                 </div>
             </Link>
 
@@ -165,10 +183,15 @@ ListCard.propTypes = {
         isPublic: PropTypes.bool,
         likesCount: PropTypes.number,
         shareToken: PropTypes.string,
+        viewsCount: PropTypes.number,
+        commentsCount: PropTypes.number,
     }).isRequired,
     onDelete: PropTypes.func,
     showActions: PropTypes.bool,
     linkTo: PropTypes.string,
+    onLikeToggle: PropTypes.func,
+    isLiked: PropTypes.bool,
+    isLikePending: PropTypes.bool,
 };
 
 ListItemPreview.propTypes = {

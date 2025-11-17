@@ -27,6 +27,12 @@ const getUserLists = async (req, res) => {
 const getPublicLists = async (req, res) => {
     const { page = 1, limit = 10, category, sortBy = 'createdAt' } = req.query;
 
+    const uid = req.auth?.uid;
+    const currentUser = uid
+        ? await User.findOne({ firebaseUid: uid }).select('_id').lean()
+        : null;
+    const currentUserId = currentUser?._id?.toString() ?? null;
+
     const filter = createFilter({ isPublic: true }, { category });
     const sort = createSort(sortBy, 'desc');
 
@@ -34,12 +40,24 @@ const getPublicLists = async (req, res) => {
         .sort(sort)
         .limit(limit * 1)
         .skip((page - 1) * limit)
-        .populate('user', 'displayName');
+        .populate('user', 'displayName')
+        .lean();
+
+    const listsWithLikes = lists.map(list => {
+        const listObj = list.toObject ? list.toObject() : list;
+        listObj.userHasLiked = currentUserId
+            ? list.likes.some((id) => {
+                const likeId = id?.toString ? id.toString() : String(id);
+                return likeId === currentUserId;
+            })
+            : false;
+        return listObj;
+    });
 
     const total = await List.countDocuments(filter);
     const pagination = createPagination(page, limit, total);
 
-    return paginatedResponse(res, lists, pagination);
+    return paginatedResponse(res, listsWithLikes, pagination);
 };
 
 // Create new list
@@ -56,7 +74,11 @@ const createList = async (req, res) => {
         items
     });
 
-    await list.save();
+    if (isPublic && !list.shareToken) {
+        await list.generateShareToken();
+    } else {
+        await list.save();
+    }
 
     // Update user's statistics
     await User.findByIdAndUpdate(userId, {
@@ -70,11 +92,11 @@ const createList = async (req, res) => {
 const getListById = async (req, res) => {
     const list = req.resource;
     const uid = req.auth?.uid;
-    
+
     const currentUser = uid
         ? await User.findOne({ firebaseUid: uid }).select('_id').lean()
         : null;
-    
+
     // Check if list is public or owned by the user
     if (!list.isPublic) {
         if (!currentUser) {
@@ -117,12 +139,19 @@ const updateList = async (req, res) => {
         return errorResponse(res, 'List cannot have more than 10 items', 400);
     }
 
+    const wasPublic = list.isPublic;
+    const becomesPublic = isPublic !== undefined ? isPublic : wasPublic;
+
     if (title) list.title = title;
     if (description !== undefined) list.description = description;
     if (isPublic !== undefined) list.isPublic = isPublic;
     if (items !== undefined) list.items = items;
 
-    await list.save();
+    if (becomesPublic && !wasPublic && !list.shareToken) {
+        await list.generateShareToken();
+    } else {
+        await list.save();
+    }
 
     return successResponse(res, list, 'List updated successfully');
 };
@@ -259,7 +288,7 @@ const getListComments = async (req, res) => {
         total,
         hasNext,
         nextCursor
-    }; 
+    };
 
     return paginatedResponse(res, responseData, pagination);
 };
@@ -422,17 +451,31 @@ const generateShareToken = async (req, res) => {
 const getListByShareToken = async (req, res) => {
     const { token } = req.params;
 
+    const currentUser = req.auth?.uid
+        ? await User.findOne({ firebaseUid: req.auth.uid }).select('_id').lean()
+        : null;
+
     const list = await List.findOne({ shareToken: token, isPublic: true });
 
     if (!list) {
         return errorResponse(res, 'List not found or not public', 404);
     }
 
+    await list.incrementViews();
     await list.populate('user', 'displayName');
 
-    await list.incrementViews();
+    const payload = list.toObject({ virtuals: true });
+    payload.user = list.user
+        ? { _id: list.user._id.toString(), displayName: list.user.displayName }
+        : null;
 
-    return successResponse(res, list);
+    payload.userHasLiked = currentUser
+        ? list.likes.some((id) => id.equals(currentUser._id))
+        : false;
+
+    payload.likesCount = list.likesCount ?? list.likes.length;
+
+    return successResponse(res, payload);
 }
 
 // Get existing share token (if exitst)
@@ -783,7 +826,7 @@ const likeList = async (req, res) => {
     const userId = req.user._id;
 
     if (!list.isPublic) {
-        return errorResponse(res, 'Cannot like a private list', )
+        return errorResponse(res, 'Cannot like a private list', 400);
     }
 
     if (list.userId.toString() === userId.toString()) {

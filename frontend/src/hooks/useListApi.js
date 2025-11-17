@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import api from "../services/api";
 
 // Fetch user's lists
@@ -22,6 +22,9 @@ export const usePublicLists = (params = {}) => {
             return response.data;
         },
         staleTime: 60000, // 1 minute
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: true,
     });
 };
 
@@ -48,8 +51,17 @@ export const useCreateList = () => {
             const response = await api.post('/lists', data);
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['lists'] });
+        onSuccess: (data) => {
+            const newList = data.data;
+            queryClient.setQueryData(['lists', newList._id], data);
+            
+            queryClient.setQueryData(['lists', 'user'], (old) => {
+                if (!old?.data) return old;
+                return {
+                    ...old,
+                    data: [newList, ...old.data]
+                };
+            });
         },
     });
 };
@@ -63,9 +75,20 @@ export const useUpdateList = () => {
             const response = await api.put(`/lists/${id}`, data);
             return response.data;
         },
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['lists'] });
-            queryClient.invalidateQueries({ queryKey: ['lists', data.data._id] });
+        onSuccess: (data, variables) => {
+            const updatedList = data.data;
+            
+            queryClient.setQueryData(['lists', variables.id], data);
+            
+            queryClient.setQueryData(['lists', 'user'], (old) => {
+                if (!old?.data) return old;
+                return {
+                    ...old,
+                    data: old.data.map(list => 
+                        list._id === variables.id ? updatedList : list
+                    )
+                };
+            });
         },
     });
 };
@@ -95,8 +118,8 @@ export const useAddListItem = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['lists'] });
-            queryClient.invalidateQueries({ queryKey: ['lists', data.data._id] });
+            const updatedList = data.data;
+            queryClient.setQueryData(['lists', updatedList._id], data);
         },
     });
 };
@@ -126,7 +149,8 @@ export const useRemoveListItem = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['lists', data.data._id] });
+            const updatedList = data.data;
+            queryClient.setQueryData(['lists', updatedList._id], data);
         },
     });
 };
@@ -141,7 +165,8 @@ export const useReorderListItems = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['lists', data.data._id] });
+            const updatedList = data.data;
+            queryClient.setQueryData(['lists', updatedList._id], data);
         },
     });
 };
@@ -171,18 +196,21 @@ export const useListByShareToken = (token) => {
 };
 
 // Get existing share token
-export const useShareToken = (id) => {
+export const useShareToken = (id, { enabled = true } = {}) => {
     return useQuery({
         queryKey: ['list', id, 'share'],
         queryFn: async () => {
             const response = await api.get(`/lists/${id}/share`);
             return response.data;
         },
-        enabled: !!id,
+        enabled: Boolean(id) && enabled, 
         staleTime: 60000, // 1 minute
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 };
 
+// Reset share token mutation
 export const useResetShareToken = () => {
     const queryClient = useQueryClient();
 
@@ -193,6 +221,72 @@ export const useResetShareToken = () => {
         },
         onSuccess: (data, id) => {
             queryClient.invalidateQueries({ queryKey: ['list', id, 'share']});
+        },
+    });
+};
+
+// List comments query key
+export const listCommentsKey = (listId) => ['list', listId, 'comments'];
+
+// List comments query
+export const useListComments = (listId, options = {}) => {
+    const limit = options.limit ?? 20;
+
+    return useInfiniteQuery({
+        queryKey: listCommentsKey(listId),
+        queryFn: async ({ pageParam = null }) => {
+            const params = { limit };
+            if (pageParam) {
+                params.cursor = pageParam;
+            }
+            const response = await api.get(`/lists/${listId}/comments`, { params });
+            return response.data;
+        },
+        getNextPageParam: (lastPage) => {
+            if (lastPage?.pagination?.hasNext) {
+                return lastPage.pagination.nextCursor;
+            }
+            return undefined;
+        },
+        enabled: Boolean(listId),
+        initialPageParam: null,
+        onError: options.onError,
+        retry: 1,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
+    });
+};
+
+// Create comment mutation
+export const useCreateComment = (listId) => {
+    return useMutation({
+        mutationFn: async ({ content, parentCommentId = null }) => {
+            const payload = parentCommentId ? { content, parentCommentId } : { content };
+            const response = await api.post(`/lists/${listId}/comments`, payload);
+            return response.data;
+        },
+    });
+};
+
+// Toggle list like mutation
+export const useToggleListLike = () => {
+    return useMutation({
+        mutationFn: async ({ listId, like }) => {
+            const method = like ? api.post : api.delete;
+            const response = await method(`/lists/${listId}/like`);
+            return response.data.data;
+        },
+    });
+};
+
+// Toggle comment like mutation
+export const useToggleCommentLike = () => {
+    return useMutation({
+        mutationFn: async ({ commentId, like }) => {
+            const method = like ? api.post : api.delete;
+            const response = await method(`/comments/${commentId}/like`);
+            return response.data.data;
         },
     });
 };

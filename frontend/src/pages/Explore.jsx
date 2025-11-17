@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import Layout from '../components/Layout/Layout';
 import ListCard from '../components/Lists/ListCard';
-import { usePublicLists } from '../hooks/useListApi';
+import { usePublicLists, useToggleListLike } from '../hooks/useListApi';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const CATEGORY_FILTERS = [
     { label: 'All', value: 'all' },
@@ -22,6 +25,10 @@ function Explore() {
     const [category, setCategory] = useState('all'); 
     const [sortBy, setSortBy] = useState('createdAt');
     const [page, setPage] = useState(1);
+    const { user } = useAuth(); 
+    const { showInfo } = useToast(); 
+    const queryClient = useQueryClient(); 
+    const toggleLikeMutation = useToggleListLike();
 
     const queryParams = useMemo(() => {
         const params = { page, limit: PAGE_LIMIT, sortBy };
@@ -51,6 +58,38 @@ function Explore() {
         if (nextPage < 1 || nextPage > pagination.pages || nextPage === page) return;
         setPage(nextPage);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleLikeToggle = async (listId, currentLiked) => {
+        if (!user) {
+            showInfo('Login to like lists');
+            throw new Error('Authentication required');
+        }
+
+        try {
+            const result = await toggleLikeMutation.mutateAsync({ 
+                listId, 
+                like: !currentLiked 
+            });
+            
+            queryClient.setQueryData(['lists', 'public', queryParams], (old) => {
+                if (!old?.data) return old;
+                return {
+                    ...old,
+                    data: old.data.map(list => 
+                        list._id === listId 
+                            ? { 
+                                ...list, 
+                                likesCount: result.likesCount,
+                                userHasLiked: result.userHasLiked 
+                            }
+                            : list
+                    )
+                };
+            });
+        } catch (err) {
+            throw err;
+        }
     };
 
     return (
@@ -130,7 +169,10 @@ function Explore() {
                                                 list.shareToken
                                                     ? `/share/${list.shareToken}`
                                                     : `/list/${list._id}`
-                                            } 
+                                            }
+                                            onLikeToggle={(nextLiked) => handleLikeToggle(list._id, list.userHasLiked)}
+                                            isLiked={list.userHasLiked ?? false}
+                                            isLikePending={toggleLikeMutation.isPending} 
                                         />
                                     ))}
                                 </div>

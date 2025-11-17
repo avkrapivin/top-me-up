@@ -15,44 +15,43 @@ describe('API Endpoints Tests', () => {
     beforeAll(async () => {
         await mongoose.connection.asPromise();
 
-        // Clean up database
-        await Promise.all([
-            User.deleteMany({}),
-            List.deleteMany({}),
-            Comment.deleteMany({}),
-            Statistics.deleteMany({})
-        ]);
-
-        // Create test user
         testUser = new User({
-            firebaseUid: 'test-api-user',
-            email: 'test@api.com',
+            firebaseUid: `test-api-user-${Date.now()}`,
+            email: `test-${Date.now()}@api.com`,
             displayName: 'API Test User',
             isAdmin: true
         });
         await testUser.save();
-
-        // Create test list
+    
         testList = new List({
             userId: testUser._id,
-            title: 'Test List',
+            title: `Test List ${Date.now()}`,
             category: 'movies',
             isPublic: true
         });
         await testList.save();
-
-        // Create test comment
+    
         testComment = new Comment({
             listId: testList._id,
             userId: testUser._id,
             content: 'Test comment'
         });
         await testComment.save();
-
-        authToken = createMockFirebaseToken('test-api-user', 'test@api.com');
+    
+        authToken = createMockFirebaseToken(testUser.firebaseUid, testUser.email);
     });
 
     afterAll(async () => {
+        if (testComment?._id) {
+            await Comment.findByIdAndDelete(testComment._id);
+        }
+        if (testList?._id) {
+            await List.findByIdAndDelete(testList._id);
+        }
+        if (testUser?._id) {
+            await User.findByIdAndDelete(testUser._id);
+        }
+        
         await mongoose.disconnect();
         app.server.close();
     });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useToast } from '../../contexts/ToastContext';
@@ -27,6 +28,7 @@ function ListBuilder() {
 
     const { data: listData, isLoading: isLoadingList } = useList(id);
     const { showSuccess, showError, showWarning } = useToast();
+    const queryClient = useQueryClient();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -247,6 +249,7 @@ function ListBuilder() {
             } else {
                 const result = await createListMutation.mutateAsync(listData);
                 showSuccess('List created successfully');
+                queryClient.setQueryData(['lists', result.data._id], result);
                 navigate(`/builder/${result.data._id}`);
             }
         } catch (error) {

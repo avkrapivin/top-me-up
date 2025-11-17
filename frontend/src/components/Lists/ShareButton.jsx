@@ -9,9 +9,13 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
     const generateTokenMutation = useGenerateShareToken();
     const resetTokenMutation = useResetShareToken();
     const { showSuccess, showError } = useToast();
-    const { data: shareData, isLoading: isLoadingToken } = useShareToken(listId);
-
     const queryClient = useQueryClient();
+
+    const canShare = isPublicPersisted && !hasUnsavedChanges;
+
+    const { data: shareData, isLoading: isLoadingToken } = useShareToken(listId, {
+        enabled: canShare && showSharePanel,
+    });
 
     // Close panel when clicking outside
     useEffect(() => {
@@ -30,8 +34,6 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
         }
     }, [showSharePanel]);
 
-    const canShare = isPublicPersisted && !hasUnsavedChanges;
-
     const handleShareClick = async () => {
         if (!isPublicPersisted) {
             showError('List must be public to share');
@@ -49,13 +51,10 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
         }
 
         try {
-            await generateTokenMutation.mutateAsync(listId);
-            await queryClient.invalidateQueries({ queryKey: ['list', listId, 'share'] });
-            const updated = await queryClient.fetchQuery({ queryKey: ['list', listId, 'share'] });
-            if (updated?.data?.shareUrl) {
-                setShowSharePanel(true);
-                showSuccess('Share link generated!');
-            }
+            const result = await generateTokenMutation.mutateAsync(listId); 
+            queryClient.setQueryData(['list', listId, 'share'], result);
+            setShowSharePanel(true);
+            showSuccess('Share link generated!');
         } catch (error) {
             console.error('Failed to generate share link:', error);
             showError('Failed to generate share link');
@@ -72,13 +71,9 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
 
     const handleResetToken = async () => {
         try {
-            await generateTokenMutation.mutateAsync(listId);
-            await queryClient.invalidateQueries({ queryKey: ['list', listId, 'share'] });
-
-            const updated = await queryClient.fetchQuery({ queryKey: ['list', listId, 'share'] });
-            if (updated?.data?.shareUrl) {
-                showSuccess('Share link regenerated successfully');
-            }
+            const result = await resetTokenMutation.mutateAsync(listId);
+            queryClient.setQueryData(['list', listId, 'share'], result);
+            showSuccess('Share link regenerated successfully');
         } catch (error) {
             console.error('Failed to reset share link:', error);
             showError('Failed to reset share link');

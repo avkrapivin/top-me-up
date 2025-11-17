@@ -1,42 +1,65 @@
 import { useParams } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useListByShareToken } from '../hooks/useListApi';
+import { useEffect, useState } from 'react';
+import { useListByShareToken, useToggleListLike } from '../hooks/useListApi';
 import ListCard from '../components/Lists/ListCard';
 import Layout from '../components/Layout/Layout';
+import LikeButton from '../components/Social/LikeButton';
+import CommentsSection from '../components/Social/CommentsSection';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
 
 function PublicList() {
     const { token } = useParams();
     const { data: listData, isLoading, error } = useListByShareToken(token);
+    const { showInfo, showError } = useToast();
+    const { user } = useAuth();
+    const list = listData?.data;
+    const listId = list?._id;
+
+    const toggleLikeMutation = useToggleListLike();
+
+    const [likesState, setLikesState] = useState({ count: 0, isLiked: false });
+    const [commentsCount, setCommentsCount] = useState(list?.commentsCount ?? 0);
+
+    useEffect(() => {
+        if (list) {
+            setLikesState({
+                count: list.likesCount ?? 0,
+                isLiked: list.userHasLiked ?? false,
+            });
+            setCommentsCount(list.commentsCount ?? 0);
+        }
+    }, [list]);
 
     useEffect(() => {
         if (listData?.data) {
-            const list = listData.data;
-            const authorName = list.user?.displayName || 'User';
+            const currentList = listData.data;
+            const authorName = currentList.user?.displayName || 'User';
 
             // Remove old meta tags
             document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(meta => meta.remove());
 
             // Create meta tags for Open Graph  
             const metaTags = [
-                { property: 'og:title', content: `${list.title} by ${authorName}` },
-                { property: 'og:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'} by ${authorName} on TopMeUp` },
+                { property: 'og:title', content: `${currentList.title} by ${authorName}` },
+                { property: 'og:description', content: currentList.description || `Top-10 ${currentList.category === 'movies' ? 'movies' : currentList.category === 'music' ? 'albums' : 'games'} by ${authorName} on TopMeUp` },
                 { property: 'og:type', content: 'website' },
                 { property: 'og:url', content: window.location.href },
                 { property: 'og:site_name', content: 'TopMeUp' },
                 { name: 'twitter:card', content: 'summary_large_image' },
-                { name: 'twitter:title', content: `${list.title} by ${authorName}` },
-                { name: 'twitter:description', content: list.description || `Top-10 ${list.category === 'movies' ? 'movies' : list.category === 'music' ? 'albums' : 'games'} by ${authorName}` },
+                { name: 'twitter:title', content: `${currentList.title} by ${authorName}` },
+                { name: 'twitter:description', content: currentList.description || `Top-10 ${currentList.category === 'movies' ? 'movies' : currentList.category === 'music' ? 'albums' : 'games'} by ${authorName}` },
             ];
 
             // If there is a poster of the first element - add image
-            if (list.items?.[0]?.cachedData?.posterUrl) {
+            if (currentList.items?.[0]?.cachedData?.posterUrl) {
                 metaTags.push(
-                    { property: 'og:image', content: list.items[0].cachedData.posterUrl },
+                    { property: 'og:image', content: currentList.items[0].cachedData.posterUrl },
                     { property: 'og:image:width', content: '1200' },
                     { property: 'og:image:height', content: '630' },
                     { property: 'og:image:type', content: 'image/jpeg' },
-                    { name: 'twitter:image', content: list.items[0].cachedData.posterUrl },
-                    { name: 'twitter:image:alt', content: `${list.title} - ${list.items[0].title}` }
+                    { name: 'twitter:image', content: currentList.items[0].cachedData.posterUrl },
+                    { name: 'twitter:image:alt', content: `${currentList.title} - ${currentList.items[0].title}` }
                 );
             }
 
@@ -52,7 +75,7 @@ function PublicList() {
             });
 
             // Update page title
-            document.title = `${list.title} - TopMeUp`;
+            document.title = `${currentList.title} - TopMeUp`;
         }
 
         return () => {
@@ -60,6 +83,27 @@ function PublicList() {
             document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(meta => meta.remove());
         };
     }, [listData, token]);
+
+    const handleLikeToggle = async (nextLiked) => {
+        if (!user) {
+            showInfo('Login to like lists');
+            throw new Error('Authentication required');
+        }
+        if (!listId) return;
+
+        try {
+            const result = await toggleLikeMutation.mutateAsync({ listId, like: nextLiked });
+
+            setLikesState({
+                count: result.likesCount,
+                isLiked: result.userHasLiked,
+            });
+        } catch (err) {
+            const message = err.response?.data?.message || 'Failed to toggle like';
+            showError(message);
+            throw err;
+        }
+    };
 
     if (isLoading) {
         return (
@@ -90,7 +134,7 @@ function PublicList() {
         );
     }
 
-    if (!listData?.data) {
+    if (!list) {
         return (
             <Layout>
                 <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
@@ -102,7 +146,6 @@ function PublicList() {
         );
     }
 
-    const list = listData.data;
     const authorName = list.user?.displayName || 'User';
 
     return (
@@ -121,11 +164,6 @@ function PublicList() {
                                 {list.description}
                             </p>
                         )}
-                        <div className="flex gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
-                            <span>{list.items?.length || 0}/10 items</span>
-                            {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
-                            {list.likesCount > 0 && <span>{list.likesCount} likes</span>}
-                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
@@ -139,6 +177,32 @@ function PublicList() {
                                 );
                             })}
                         </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 max-w-xl mx-auto">
+                        <div className="flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+                            <span>{list.items?.length || 0}/10 items</span>
+                            {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
+                            <LikeButton
+                                count={likesState.count}
+                                isLiked={likesState.isLiked}
+                                onToggle={handleLikeToggle}
+                                disabled={toggleLikeMutation.isPending}
+                                size="md"
+                                label="Like for list"
+                            />
+                            <span>
+                                {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <CommentsSection
+                            listId={list._id}
+                            initialCount={list.commentsCount ?? 0}
+                            onCountChange={setCommentsCount}
+                        />
                     </div>
                 </div>
             </div>

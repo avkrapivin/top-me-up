@@ -31,11 +31,11 @@ const {
 const router = express.Router();
 
 // Public routes
-router.get('/public', asyncHandler(getPublicLists));
+router.get('/public', optionalVerifyToken, asyncHandler(getPublicLists));
 router.get('/preview/:token', asyncHandler(generateListPreview));
 router.get('/s/:token', asyncHandler(renderSharePreview));
 router.get('/share/:token', asyncHandler(renderSharePreview));
-router.get('/share/:token/data', asyncHandler(getListByShareToken));
+router.get('/share/:token/data', optionalVerifyToken, asyncHandler(getListByShareToken));
 router.get('/:id', optionalVerifyToken, loadList, asyncHandler(getListById));
 router.get('/:id/comments', optionalVerifyToken,loadList, asyncHandler(getListComments));
 

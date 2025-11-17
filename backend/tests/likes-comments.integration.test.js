@@ -16,50 +16,58 @@ describe('Likes API integration', () => {
     let deletedComment;
 
     beforeAll(async () => {
-        await Promise.all([
-            User.deleteMany({}),
-            List.deleteMany({}),
-            Comment.deleteMany({})
-        ]);
-
         owner = await User.create({
-            firebaseUid: 'likes-owner',
-            email: 'owner@example.com',
+            firebaseUid: `test-likes-owner-${Date.now()}`,
+            email: `test-owner-${Date.now()}@example.com`,
             displayName: 'Owner'
         });
-
+    
         participant = await User.create({
-            firebaseUid: 'likes-user',
-            email: 'user@example.com',
+            firebaseUid: `test-likes-user-${Date.now()}`,
+            email: `test-user-${Date.now()}@example.com`,
             displayName: 'User'
         });
-
+    
         publicList = await List.create({
             userId: owner._id,
-            title: 'Public list',
+            title: `Test Public list ${Date.now()}`,
             category: 'movies',
             isPublic: true
         });
-
+    
         publicComment = await Comment.create({
             listId: publicList._id,
             userId: participant._id,
             content: 'Great list!'
         });
-
+    
         deletedComment = await Comment.create({
             listId: publicList._id,
             userId: participant._id,
             content: 'Old comment',
             isDeleted: true
         });
-
+    
         ownerToken = createMockFirebaseToken(owner.firebaseUid, owner.email);
         participantToken = createMockFirebaseToken(participant.firebaseUid, participant.email);
     });
 
     afterAll(async () => {
-        await mongoose.connection.dropDatabase();
+        if (deletedComment?._id) {
+            await Comment.findByIdAndDelete(deletedComment._id);
+        }
+        if (publicComment?._id) {
+            await Comment.findByIdAndDelete(publicComment._id);
+        }
+        if (publicList?._id) {
+            await List.findByIdAndDelete(publicList._id);
+        }
+        if (participant?._id) {
+            await User.findByIdAndDelete(participant._id);
+        }
+        if (owner?._id) {
+            await User.findByIdAndDelete(owner._id);
+        }
         await mongoose.disconnect();
         app.server.close();
     });
