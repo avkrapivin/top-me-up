@@ -10,7 +10,7 @@ const posterConfigByCategory = {
 
 const getPosterConfig = (category) => posterConfigByCategory[category] || posterConfigByCategory.movies;
 
-function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, isLiked, isLikePending }) {
+function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, isLiked, isLikePending, onAuthorClick }) {
     const getCategoryLabel = (category) => {
         switch (category) {
             case 'movies':
@@ -57,6 +57,25 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
                     {list.description && (
                         <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
                             {list.description}
+                        </p>
+                    )}
+                    {list.user?.displayName && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            by{' '}
+                            {onAuthorClick ? (
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onAuthorClick(list.user._id, list.user.displayName);
+                                    }}
+                                    className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline font-medium transition-colors"
+                                >
+                                    {list.user.displayName}
+                                </button>
+                            ) : (
+                                <span>{list.user.displayName}</span>
+                            )}
                         </p>
                     )}
                 </div>
@@ -185,6 +204,10 @@ ListCard.propTypes = {
         shareToken: PropTypes.string,
         viewsCount: PropTypes.number,
         commentsCount: PropTypes.number,
+        user: PropTypes.shape({
+            _id: PropTypes.string,
+            displayName: PropTypes.string,
+        }),
     }).isRequired,
     onDelete: PropTypes.func,
     showActions: PropTypes.bool,
@@ -192,6 +215,7 @@ ListCard.propTypes = {
     onLikeToggle: PropTypes.func,
     isLiked: PropTypes.bool,
     isLikePending: PropTypes.bool,
+    onAuthorClick: PropTypes.func,
 };
 
 ListItemPreview.propTypes = {

@@ -37,6 +37,14 @@ api.interceptors.response.use(
         const status = error.response?.status;
         const message = error.response?.data?.error || error.response?.data?.message || '';
 
+        if (!error.response) {
+            console.error('Network error:', {
+                message: error.message,
+                code: error.code,
+                config: originalRequest?.url,
+            });
+        }
+
         const isTokenExpired = status === 401 && (
             message.includes('id-token-expired') || 
             message.includes('expired') ||

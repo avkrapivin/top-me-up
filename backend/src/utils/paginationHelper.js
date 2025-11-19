@@ -12,6 +12,12 @@ const createFilter = (baseFilter, query) => {
 
     if (query.category) filter.category = query.category;
     if (query.isPublic !== undefined) filter.isPublic = query.isPublic === 'true';
+    if (query.userId) {
+        const mongoose = require('mongoose');
+        if (mongoose.Types.ObjectId.isValid(query.userId)) {
+            filter.userId = query.userId;
+        }
+    }
     if (query.search) {
         filter.$or = [
             { title: { $regex: query.search, $options: 'i' }},

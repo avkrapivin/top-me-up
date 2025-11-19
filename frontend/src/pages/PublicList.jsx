@@ -5,6 +5,9 @@ import ListCard from '../components/Lists/ListCard';
 import Layout from '../components/Layout/Layout';
 import LikeButton from '../components/Social/LikeButton';
 import CommentsSection from '../components/Social/CommentsSection';
+import PublicShareButton from '../components/Social/PublicShareButton';
+import Skeleton from '../components/UI/Skeleton';
+import NetworkError from '../components/UI/NetworkError';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
 
@@ -108,8 +111,40 @@ function PublicList() {
     if (isLoading) {
         return (
             <Layout>
-                <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                    <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
+                    <div className="max-w-4xl mx-auto">
+                        {/* Header skeleton */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                            <Skeleton className="mb-2" width="60%" height="36px" />
+                            <Skeleton className="mb-4" width="150px" height="20px" />
+                            <Skeleton width="80%" height="16px" />
+                        </div>
+                        
+                        {/* Items grid skeleton */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 max-w-xl mx-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                        <Skeleton width="64px" height="96px" rounded="rounded" />
+                                        <div className="flex-1">
+                                            <Skeleton className="mb-1" width="90%" height="14px" />
+                                            <Skeleton width="60%" height="12px" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Stats skeleton */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 max-w-xl mx-auto">
+                            <div className="flex items-center justify-center gap-6">
+                                <Skeleton width="80px" height="16px" />
+                                <Skeleton width="60px" height="16px" />
+                                <Skeleton width="60px" height="16px" />
+                                <Skeleton width="80px" height="16px" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </Layout>
         );
@@ -120,14 +155,13 @@ function PublicList() {
             <Layout>
                 <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
                     <div className="max-w-4xl mx-auto">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                            <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
-                                Error
-                            </h1>
-                            <p className="text-gray-600 dark:text-gray-300">
-                                {error.message || 'List not found or not available'}
-                            </p>
-                        </div>
+                        <NetworkError
+                            error={error}
+                            onRetry={() => {
+                                window.location.reload();
+                            }}
+                            title="Failed to Load List"
+                        />
                     </div>
                 </div>
             </Layout>
@@ -147,6 +181,7 @@ function PublicList() {
     }
 
     const authorName = list.user?.displayName || 'User';
+    const shareUrl = token ? `${window.location.origin}/share/${token}` : null;
 
     return (
         <Layout>
@@ -180,20 +215,27 @@ function PublicList() {
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 max-w-xl mx-auto">
-                        <div className="flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-                            <span>{list.items?.length || 0}/10 items</span>
-                            {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
-                            <LikeButton
-                                count={likesState.count}
-                                isLiked={likesState.isLiked}
-                                onToggle={handleLikeToggle}
-                                disabled={toggleLikeMutation.isPending}
-                                size="md"
-                                label="Like for list"
-                            />
-                            <span>
-                                {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
-                            </span>
+                        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center gap-6">
+                                <span>{list.items?.length || 0}/10 items</span>
+                                {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
+                                <LikeButton
+                                    count={likesState.count}
+                                    isLiked={likesState.isLiked}
+                                    onToggle={handleLikeToggle}
+                                    disabled={toggleLikeMutation.isPending}
+                                    size="md"
+                                    label="Like for list"
+                                />
+                                <span>
+                                    {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+                                </span>
+                            </div>
+                            {shareUrl && (
+                                <div className="ml-4">
+                                    <PublicShareButton shareUrl={shareUrl} listTitle={list.title} />
+                                </div>
+                            )}
                         </div>
                     </div>
 

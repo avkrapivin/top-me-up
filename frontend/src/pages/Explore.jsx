@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import Layout from '../components/Layout/Layout';
 import ListCard from '../components/Lists/ListCard';
+import ListCardSkeleton from '../components/UI/ListCardSkeleton';
+import NetworkError from '../components/UI/NetworkError';
 import { usePublicLists, useToggleListLike } from '../hooks/useListApi';
 import { useAuth } from '../hooks/useAuth';
+import { useUserProfile } from '../hooks/useAuthApi';
 import { useToast } from '../contexts/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -22,12 +25,14 @@ const SORT_OPTIONS = [
 const PAGE_LIMIT = 12;
 
 function Explore() {
-    const [category, setCategory] = useState('all'); 
+    const [category, setCategory] = useState('all');
     const [sortBy, setSortBy] = useState('createdAt');
     const [page, setPage] = useState(1);
-    const { user } = useAuth(); 
-    const { showInfo } = useToast(); 
-    const queryClient = useQueryClient(); 
+    const [selectedAuthor, setSelectedAuthor] = useState(null);
+    const { user } = useAuth();
+    const { data: userProfile } = useUserProfile(!!user);
+    const { showInfo } = useToast();
+    const queryClient = useQueryClient();
     const toggleLikeMutation = useToggleListLike();
 
     const queryParams = useMemo(() => {
@@ -35,8 +40,11 @@ function Explore() {
         if (category !== 'all') {
             params.category = category;
         }
+        if (selectedAuthor?.id) {
+            params.userId = selectedAuthor.id;
+        }
         return params;
-    }, [category, sortBy, page]);
+    }, [category, sortBy, page, selectedAuthor]);
 
     const { data, isLoading, isError, error, isFetching } = usePublicLists(queryParams);
     const lists = data?.data ?? [];
@@ -54,6 +62,33 @@ function Explore() {
         setPage(1);
     };
 
+    // Author click handler
+    const handleAuthorClick = (userId, displayName) => {
+        setSelectedAuthor({ id: userId, name: displayName });
+        setPage(1);
+    };
+
+    // "My Lists" filter handler
+    const handleMyListsClick = () => {
+        if (!userProfile?._id) return;
+        
+        const currentAuthorId = selectedAuthor?.id ? String(selectedAuthor.id) : null;
+        const userId = String(userProfile._id);
+        
+        if (currentAuthorId === userId) {
+            setSelectedAuthor(null);
+        } else {
+            setSelectedAuthor({ id: userProfile._id, name: userProfile.displayName || user?.displayName || 'You' });
+        }
+        setPage(1);
+    };
+
+    // Clear filter handler
+    const handleClearFilter = () => {
+        setSelectedAuthor(null);
+        setPage(1);
+    };
+
     const handlePageChange = (nextPage) => {
         if (nextPage < 1 || nextPage > pagination.pages || nextPage === page) return;
         setPage(nextPage);
@@ -67,21 +102,21 @@ function Explore() {
         }
 
         try {
-            const result = await toggleLikeMutation.mutateAsync({ 
-                listId, 
-                like: !currentLiked 
+            const result = await toggleLikeMutation.mutateAsync({
+                listId,
+                like: !currentLiked
             });
-            
+
             queryClient.setQueryData(['lists', 'public', queryParams], (old) => {
                 if (!old?.data) return old;
                 return {
                     ...old,
-                    data: old.data.map(list => 
-                        list._id === listId 
-                            ? { 
-                                ...list, 
+                    data: old.data.map(list =>
+                        list._id === listId
+                            ? {
+                                ...list,
                                 likesCount: result.likesCount,
-                                userHasLiked: result.userHasLiked 
+                                userHasLiked: result.userHasLiked
                             }
                             : list
                     )
@@ -105,6 +140,23 @@ function Explore() {
                         </p>
                     </div>
 
+                    {selectedAuthor && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 flex items-center justify-between">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Showing lists by <strong className="font-semibold">{selectedAuthor.name}</strong>
+                            </span>
+                            <button
+                                onClick={handleClearFilter}
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium transition-colors flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Clear filter
+                            </button>
+                        </div>
+                    )}
+
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex flex-wrap gap-2">
@@ -113,15 +165,27 @@ function Explore() {
                                         key={value}
                                         type="button"
                                         onClick={() => handleCategoryChange(value)}
-                                        className={`px-4 py-2 rounded-lg border transition ${
-                                            category === value
+                                        className={`px-4 py-2 rounded-lg border transition ${category === value
                                                 ? 'bg-blue-500 text-white border-blue-500'
                                                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         {label}
                                     </button>
                                 ))}
+                                {user && (
+                                    <button
+                                        type="button"
+                                        onClick={handleMyListsClick}
+                                        className={`px-4 py-2 rounded-lg border transition ${
+                                            selectedAuthor?.id && userProfile?._id && String(selectedAuthor.id) === String(userProfile._id)
+                                                ? 'bg-blue-500 text-white border-blue-500'
+                                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        My Lists
+                                    </button>
+                                )}
                             </div>
 
                             <div className="flex flex-wrap gap-2">
@@ -130,11 +194,10 @@ function Explore() {
                                         key={value}
                                         type="button"
                                         onClick={() => handleSortChange(value)}
-                                        className={`px-4 py-2 rounded-lg border transition ${
-                                            sortBy === value
+                                        className={`px-4 py-2 rounded-lg border transition ${sortBy === value
                                                 ? 'bg-blue-500 text-white border-blue-500'
                                                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         {label}
                                     </button>
@@ -144,15 +207,19 @@ function Explore() {
                     </div>
 
                     {isLoading ? (
-                        <div className="min-h-[40vh] flex items-center justify-center">
-                            <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                            {Array.from({ length: PAGE_LIMIT }).map((_, index) => (
+                                <ListCardSkeleton key={`skeleton-${index}`} />
+                            ))}
                         </div>
                     ) : isError ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                            <p className="text-red-600 dark:text-red-400">
-                                Failed to load lists: {error?.message || 'Unknown error'}
-                            </p>
-                        </div>
+                        <NetworkError
+                            error={error}
+                            onRetry={() => {
+                                queryClient.invalidateQueries(['lists', 'public', queryParams]);
+                            }}
+                            title="Failed to Load Lists"
+                        />
                     ) : (
                         <>
                             {lists.length === 0 ? (
@@ -172,7 +239,8 @@ function Explore() {
                                             }
                                             onLikeToggle={(nextLiked) => handleLikeToggle(list._id, list.userHasLiked)}
                                             isLiked={list.userHasLiked ?? false}
-                                            isLikePending={toggleLikeMutation.isPending} 
+                                            isLikePending={toggleLikeMutation.isPending}
+                                            onAuthorClick={handleAuthorClick}
                                         />
                                     ))}
                                 </div>

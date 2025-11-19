@@ -7,10 +7,39 @@ import {
     onAuthStateChanged,
     onIdTokenChanged,
     updateProfile,
-    sendEmailVerification
+    sendEmailVerification,
+    GoogleAuthProvider,
+    FacebookAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import api from '../services/api';
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+const facebookProvider = new FacebookAuthProvider();
+facebookProvider.addScope('email');
+facebookProvider.setCustomParameters({ prompt: 'popup' });
+
+const syncUserWithBackend = async (user) => {
+    try {
+        await api.post('/auth/user', {
+            firebaseUid: user.uid,
+            email: user.email,
+            displayName: user.displayName
+        });
+    } catch (backendError) {
+        console.error('Backend user creation failed (non-critical):', backendError);
+    }
+};
+
+const buildUserState = (user) => ({
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    emailVerified: user.emailVerified,
+})
 
 const getFirebaseErrorMessage = (error) => {
     const errorCode = error.code;
@@ -55,25 +84,10 @@ export const useAuthStore = create(
                     set({ verificationSent: true });
 
                     const token = await user.getIdToken();
-
-                    try {
-                        await api.post('/auth/user', {
-                            firebaseUid: user.uid,
-                            email: user.email,
-                            displayName: user.displayName
-                        });
-                    } catch (backendError) {
-                        console.error('Backend user creation failed (non-critical):', backendError);
-                    }
                     
-
+                    await syncUserWithBackend(user);
                     set({
-                        user: {
-                            uid: user.uid,
-                            email: user.email,
-                            displayName: user.displayName,
-                            emailVerified: user.emailVerified,
-                        },
+                        user: buildUserState(user),
                         token,
                         loading: false,
                     });
@@ -103,24 +117,10 @@ export const useAuthStore = create(
 
                     const token = await user.getIdToken();
 
-                    try {
-                        await api.post('/auth/user', {
-                            firebaseUid: user.uid,
-                            email: user.email,
-                            displayName: user.displayName
-                        });
-                    } catch (backendError) {
-                        console.error('Backend sync failded (non-critical):', backendError);
-                    }
-
+                    await syncUserWithBackend(user);
 
                     set({
-                        user: {
-                            uid: user.uid,
-                            email: user.email,
-                            displayName: user.displayName,
-                            emailVerified: user.emailVerified,
-                        },
+                        user: buildUserState(user),
                         token,
                         loading: false
                     });
@@ -132,6 +132,32 @@ export const useAuthStore = create(
                     throw error;
                 }
             },
+
+            signInWithProvider: async (provider) => {
+                try {
+                    set({ loading: true, error: null });
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+                    const token = await user.getIdToken();
+
+                    await syncUserWithBackend(user);
+
+                    set({
+                        user: buildUserState(user),
+                        token,
+                        loading: false,
+                    });
+
+                    return user;
+                } catch (error) {
+                    const userFriendlyMessage = getFirebaseErrorMessage(error);
+                    set({ error: userFriendlyMessage, loading: false });
+                    throw error;
+                }
+            },
+
+            signInWithGoogle: () => get().signInWithProvider(googleProvider),
+            signInWithFacebook: () => get().signInWithProvider(facebookProvider),
 
             logout: async () => {
                 try {
@@ -210,13 +236,9 @@ export const useAuthStore = create(
 
                             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+                            await syncUserWithBackend(firebaseUser);
                             set({
-                                user: {
-                                    uid: firebaseUser.uid,
-                                    email: firebaseUser.email,
-                                    displayName: firebaseUser.displayName,
-                                    emailVerified: firebaseUser.emailVerified,
-                                },
+                                user: buildUserState(firebaseUser),
                                 token,
                                 loading: false,
                                 isInitialized: true

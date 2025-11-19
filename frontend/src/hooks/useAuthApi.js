@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import {
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    updatePassword,
+    updateProfile as updateFirebaseProfile,
+} from 'firebase/auth';
 import api from '../services/api';
 import { auth } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -25,10 +30,20 @@ export const useUserProfile = (enabled = true) => {
 export const useUpdateProfile = () => {
     const queryClient = useQueryClient();
     const updateDisplayName = useAuthStore.getState().updateDisplayName;
-    
+
     return useMutation({
-        mutationFn: async (payload) => {
-            const { data } = await api.put('/auth/profile', payload);
+        mutationFn: async ({ displayName, ...rest }) => {
+            const trimmedName = displayName?.trim();
+
+            if (trimmedName && auth.currentUser) {
+                await updateFirebaseProfile(auth.currentUser, { displayName: trimmedName });
+            }
+
+            const { data } = await api.put('/auth/profile', {
+                ...rest,
+                displayName: trimmedName,
+            });
+
             return data.data;
         },
         onSuccess: (updatedUser) => {

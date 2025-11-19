@@ -7,9 +7,14 @@ import {
     useListComments,
     useCreateComment,
     useToggleCommentLike,
+    useUpdateComment,
+    useDeleteComment,
 } from '../../hooks/useListApi';
 import CommentItem from './CommentItem';
+import CommentSkeleton from '../UI/CommentSkeleton';
+import NetworkError from '../UI/NetworkError';
 import PropTypes from 'prop-types';
+import { useUserProfile } from '../../hooks/useAuthApi';
 
 function debounce(func, wait) {
     let timeout;
@@ -44,6 +49,11 @@ function CommentsSection({ listId, initialCount = 0, onCountChange }) {
 
     const createComment = useCreateComment(listId);
     const toggleCommentLike = useToggleCommentLike();
+    const updateComment = useUpdateComment(listId);
+    const deleteComment = useDeleteComment(listId);
+
+    const { data: userProfile } = useUserProfile(!!user);
+    const currentUserId = userProfile?._id || null;
 
     const [newComment, setNewComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,8 +66,8 @@ function CommentsSection({ listId, initialCount = 0, onCountChange }) {
     }, [data]);
 
     const totalCount = useMemo(() => {
-        return data?.pages?.[0]?.pagination?.total ?? initialCount;
-    }, [data, initialCount]);
+        return initialCount ?? data?.pages?.[0]?.pagination?.total ?? 0;
+    }, [initialCount, data]);
 
     useEffect(() => {
         onCountChange?.(totalCount);
@@ -146,6 +156,38 @@ function CommentsSection({ listId, initialCount = 0, onCountChange }) {
             }
         },
         [toggleCommentLike, showError, showInfo, updateCommentInCache, user]
+    );
+
+    // Handle edit comment
+    const handleEditComment = useCallback(
+        async (commentId, content) => {
+            try {
+                await updateComment.mutateAsync({ commentId, content });
+                showSuccess('Comment updated successfully');
+                return true;
+            } catch (error) {
+                showError(error.response?.data?.message || 'Failed to update comment');
+                return false;
+            }
+        },
+        [updateComment, showSuccess, showError]
+    );
+
+    // Handle delete comment
+    const handleDeleteComment = useCallback(
+        async (commentId) => {
+            try {
+                await deleteComment.mutateAsync(commentId);
+                showSuccess('Comment deleted successfully');
+                if (onCountChange) {
+                    const newCount = Math.max(0, totalCount - 1);
+                    onCountChange(newCount);
+                }
+            } catch (error) {
+                showError(error.response?.data?.message || 'Failed to delete comment');
+            }
+        },
+        [deleteComment, showSuccess, showError, totalCount, onCountChange]
     );
 
     const handleReply = useCallback(
@@ -274,37 +316,46 @@ function CommentsSection({ listId, initialCount = 0, onCountChange }) {
                 </p>
             )}
 
-            {error && !isLoading && (
-                <div className="mt-6 text-sm text-red-500 dark:text-red-400">
-                    Failed to load comments. Please try refreshing the page.
+            {isLoading ? (
+                <div className="mt-6 space-y-4">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                        <CommentSkeleton key={`comment-skeleton-${index}`} />
+                    ))}
+                </div>
+            ) : error ? (
+                <div className="mt-6">
+                    <NetworkError
+                        error={error}
+                        onRetry={() => refetch()}
+                        title="Failed to Load Comments"
+                        className="p-4"
+                    />
+                </div>
+            ) : comments.length === 0 ? (
+                <p className="mt-6 text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                    No comments yet — be the first!
+                </p>
+            ) : (
+                <div className="mt-6 space-y-4">
+                    {comments.map((comment) => (
+                        <CommentItem
+                            key={comment._id}
+                            comment={comment}
+                            depth={0}
+                            canReply={Boolean(user)}
+                            onReply={handleReply}
+                            onLikeToggle={handleLikeToggle}
+                            pendingLikeId={pendingLikeId}
+                            pendingReplyId={pendingReplyId}
+                            currentUserId={currentUserId}
+                            onEdit={handleEditComment}
+                            onDelete={handleDeleteComment}
+                            isEditPending={updateComment.isPending}
+                            isDeletePending={deleteComment.isPending}
+                        />
+                    ))}
                 </div>
             )}
-
-            <div className="mt-6 space-y-4">
-                {isLoading && (
-                    <div className="flex justify-center py-6">
-                        <div className="h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                )}
-
-                {!isLoading && comments.length === 0 && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No comments yet — be the first!
-                    </p>
-                )}
-
-                {comments.map((comment) => (
-                    <CommentItem
-                        key={comment._id}
-                        comment={comment}
-                        canReply={Boolean(user)}
-                        onReply={handleReply}
-                        onLikeToggle={handleLikeToggle}
-                        pendingLikeId={pendingLikeId}
-                        pendingReplyId={pendingReplyId}
-                    />
-                ))}
-            </div>
 
             {hasNextPage && (
                 <div className="mt-6 flex justify-center">

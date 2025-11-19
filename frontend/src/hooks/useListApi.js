@@ -290,3 +290,34 @@ export const useToggleCommentLike = () => {
         },
     });
 };
+
+// Update comment mutation
+export const useUpdateComment = (listId) => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: async ({ commentId, content }) => {
+            const response = await api.put(`/comments/${commentId}`, { content });
+            return response.data;
+        },
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: listCommentsKey(listId) });
+        },
+    });
+};
+
+// Delete comment mutation
+export const useDeleteComment = (listId) => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: async (commentId) => {
+            const response = await api.delete(`/comments/${commentId}`);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: listCommentsKey(listId) });
+            queryClient.invalidateQueries({ queryKey: ['list', listId] });
+        },
+    });
+};

@@ -25,7 +25,7 @@ const getUserLists = async (req, res) => {
 
 // Get public lists
 const getPublicLists = async (req, res) => {
-    const { page = 1, limit = 10, category, sortBy = 'createdAt' } = req.query;
+    const { page = 1, limit = 10, category, sortBy = 'createdAt', userId } = req.query;
 
     const uid = req.auth?.uid;
     const currentUser = uid
@@ -33,7 +33,7 @@ const getPublicLists = async (req, res) => {
         : null;
     const currentUserId = currentUser?._id?.toString() ?? null;
 
-    const filter = createFilter({ isPublic: true }, { category });
+    const filter = createFilter({ isPublic: true }, { category, userId });
     const sort = createSort(sortBy, 'desc');
 
     const lists = await List.find(filter)
@@ -209,16 +209,35 @@ const getListComments = async (req, res) => {
         ? parentComments[parentComments.length - 1]._id.toString()
         : null;
 
-    const parentIds = parentComments.map((comment) => comment._id);
-    let replies = [];
-    if (parentIds.length) {
-        replies = await Comment.find({
-            parentCommentId: { $in: parentIds },
-            isDeleted: false
+    const loadAllReplies = async (parentIds) => {
+        if (!parentIds || parentIds.length === 0) return [];
+
+        const directReplies = await Comment.find({
+            parentCommentId: { $in: parentIds }
         })
             .sort({ _id: 1 })
             .lean();
-    }
+
+        if (directReplies.length === 0) return [];
+
+        const replyIds = directReplies.map(reply => reply._id);
+        const nestedReplies = await loadAllReplies(replyIds);
+
+        return [...directReplies, ...nestedReplies];
+    };
+
+    const parentIds = parentComments.map((comment) => comment._id);
+    const allReplies = await loadAllReplies(parentIds);
+
+    const allParentIds = new Set();
+    allReplies.forEach(reply => {
+        if (reply.parentCommentId) {
+            allParentIds.add(reply.parentCommentId.toString());
+        }
+    });
+    parentComments.forEach(comment => {
+        allParentIds.add(comment._id.toString());
+    });
 
     const userIds = new Set();
     const normalize = (doc) => {
@@ -232,7 +251,7 @@ const getListComments = async (req, res) => {
     };
 
     parentComments.forEach(normalize);
-    replies.forEach(normalize);
+    allReplies.forEach(normalize);
 
     let usersMap = new Map();
     if (userIds.size) {
@@ -250,21 +269,24 @@ const getListComments = async (req, res) => {
     const userLikes = (likes) =>
         currentUserId ? likes.some((id) => id === currentUserId) : false;
 
-    const repliesByParent = replies.reduce((acc, reply) => {
-        if (!reply.parentCommentId) return acc;
-        const { likes, ...rest } = reply;
-        const decoratedReply = {
-            ...rest,
-            user: usersMap.get(reply.userId) || null,
-            userHasLiked: userLikes(likes),
-            likesCount: likes.length
-        };
-        if (!acc[reply.parentCommentId]) {
-            acc[reply.parentCommentId] = [];
-        }
-        acc[reply.parentCommentId].push(decoratedReply);
-        return acc;
-    }, {});
+    const buildRepliesTree = (parentId) => {
+        return allReplies
+            .filter(reply => {
+                const replyParentId = reply.parentCommentId?.toString();
+                const parentIdStr = parentId?.toString ? parentId.toString() : String(parentId);
+                return replyParentId === parentIdStr;
+            })
+            .map(reply => {
+                const { likes, ...rest } = reply;
+                return {
+                    ...rest,
+                    user: usersMap.get(reply.userId) || null,
+                    userHasLiked: userLikes(likes),
+                    likesCount: likes.length,
+                    replies: buildRepliesTree(reply._id)
+                };
+            });
+    };
 
     const responseData = parentComments.map((comment) => {
         const { likes, ...rest } = comment;
@@ -273,14 +295,13 @@ const getListComments = async (req, res) => {
             user: usersMap.get(comment.userId) || null,
             userHasLiked: userLikes(likes),
             likesCount: likes.length,
-            replies: repliesByParent[comment._id] || []
+            replies: buildRepliesTree(comment._id)
         };
     });
 
     const total = await Comment.countDocuments({
         listId: list._id,
-        isDeleted: false,
-        parentCommentId: null
+        isDeleted: false
     });
 
     const pagination = {

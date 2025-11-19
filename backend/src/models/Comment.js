@@ -82,7 +82,7 @@ commentSchema.index({ isDeleted: 1 });
 commentSchema.pre('save', function(next) {
     this.likesCount = this.likes.length;
     if (this.isModified('content') && !this.isNew) {
-        this.isUpdated = true;
+        this.isEdited = true;
         this.editedAt = new Date();
     }
     next();
