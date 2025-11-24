@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import LikeButton from './LikeButton';
+import ConfirmModal from '../UI/ConfirmModal';
 
 function CommentItem({
     comment,
@@ -20,6 +21,7 @@ function CommentItem({
     const [replyText, setReplyText] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.content);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
 
     const authorName = comment.user?.displayName || 'Anonymous';
@@ -86,9 +88,12 @@ function CommentItem({
     // Handle delete
     const handleDelete = async () => {
         if (!onDelete) return;
-        if (window.confirm('Are you sure you want to delete this comment?')) {
-            await onDelete(comment._id);
-        }
+        await onDelete(comment._id);
+        setIsDeleteModalOpen(false);
+    };
+
+    const handleDeleteClick = () => {
+        setIsDeleteModalOpen(true);
     };
 
     const isLikePending = pendingLikeId === comment._id;
@@ -184,7 +189,7 @@ function CommentItem({
                         </button>
                         <button
                             type="button"
-                            onClick={handleDelete}
+                            onClick={handleDeleteClick}
                             disabled={isDeletePending}
                             className="font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition disabled:opacity-70"
                         >
@@ -245,6 +250,16 @@ function CommentItem({
                     ))}
                 </div>
             )}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+                title="Delete Comment"
+                message="Are you sure you want to delete this comment? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                isLoading={isDeletePending}
+            />
         </article>
     );
 }

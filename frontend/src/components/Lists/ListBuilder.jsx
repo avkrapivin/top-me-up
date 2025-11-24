@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ConfirmModal from '../UI/ConfirmModal';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -36,6 +37,7 @@ function ListBuilder() {
     const [isPublic, setIsPublic] = useState(false);
     const [items, setItems] = useState([]);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const originalStateRef = useRef(null);
 
@@ -259,16 +261,19 @@ function ListBuilder() {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
-
         try {
             await deleteListMutation.mutateAsync(id);
             showSuccess('List deleted successfully');
+            setIsDeleteModalOpen(false);
             navigate('/dashboard');
         } catch (error) {
             console.error('Failed to delete list:', error);
             showError('Failed to delete list');
         }
+    };
+
+    const handleDeleteClick = () => {
+        setIsDeleteModalOpen(true);
     };
 
     const exportListData = isEditMode && listData?.data ? {
@@ -327,7 +332,7 @@ function ListBuilder() {
                         </button>
                         {isEditMode && (
                             <button
-                                onClick={handleDelete}
+                                onClick={handleDeleteClick}
                                 disabled={deleteListMutation.isPending}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition disabled:opacity-50"
                             >
@@ -458,6 +463,16 @@ function ListBuilder() {
                     listData={exportListData}
                 />
             )}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+                title="Delete List"
+                message={`Are you sure you want to delete "${title}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                isLoading={deleteListMutation.isPending}
+            />
         </div>
     );
 }

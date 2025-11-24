@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import PropTypes from 'prop-types';
 import LikeButton from '../Social/LikeButton';
+import { useState } from 'react';
+import ConfirmModal from '../UI/ConfirmModal';
 
 const posterConfigByCategory = {
     movies: { width: 64, height: 96, imageClass: 'object-cover', containerBg: 'bg-gray-200 dark:bg-gray-700' },
@@ -11,6 +13,7 @@ const posterConfigByCategory = {
 const getPosterConfig = (category) => posterConfigByCategory[category] || posterConfigByCategory.movies;
 
 function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, isLiked, isLikePending, onAuthorClick }) {
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const getCategoryLabel = (category) => {
         switch (category) {
             case 'movies':
@@ -26,9 +29,12 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
 
     const handleDelete = (e) => {
         e.preventDefault();
-        if (window.confirm(`Are you sure you want to delete "${list.title}"?`)) {
-            onDelete(list._id);
-        }
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        onDelete(list._id);
+        setIsDeleteModalOpen(false);
     };
 
     const slots = Array(10).fill(null).map((_, index) => {
@@ -136,6 +142,15 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
                     </button>
                 </div>
             )}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete List"
+                message={`Are you sure you want to delete "${list.title}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 }

@@ -71,10 +71,10 @@ function Explore() {
     // "My Lists" filter handler
     const handleMyListsClick = () => {
         if (!userProfile?._id) return;
-        
+
         const currentAuthorId = selectedAuthor?.id ? String(selectedAuthor.id) : null;
         const userId = String(userProfile._id);
-        
+
         if (currentAuthorId === userId) {
             setSelectedAuthor(null);
         } else {
@@ -166,8 +166,8 @@ function Explore() {
                                         type="button"
                                         onClick={() => handleCategoryChange(value)}
                                         className={`px-4 py-2 rounded-lg border transition ${category === value
-                                                ? 'bg-blue-500 text-white border-blue-500'
-                                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            ? 'bg-blue-500 text-white border-blue-500'
+                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             }`}
                                     >
                                         {label}
@@ -177,11 +177,10 @@ function Explore() {
                                     <button
                                         type="button"
                                         onClick={handleMyListsClick}
-                                        className={`px-4 py-2 rounded-lg border transition ${
-                                            selectedAuthor?.id && userProfile?._id && String(selectedAuthor.id) === String(userProfile._id)
+                                        className={`px-4 py-2 rounded-lg border transition ${selectedAuthor?.id && userProfile?._id && String(selectedAuthor.id) === String(userProfile._id)
                                                 ? 'bg-blue-500 text-white border-blue-500'
                                                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         My Lists
                                     </button>
@@ -195,8 +194,8 @@ function Explore() {
                                         type="button"
                                         onClick={() => handleSortChange(value)}
                                         className={`px-4 py-2 rounded-lg border transition ${sortBy === value
-                                                ? 'bg-blue-500 text-white border-blue-500'
-                                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            ? 'bg-blue-500 text-white border-blue-500'
+                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             }`}
                                     >
                                         {label}
@@ -227,22 +226,25 @@ function Explore() {
                                     No lists found for the selected filters.
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                                    {lists.map((list) => (
-                                        <ListCard
-                                            key={list._id}
-                                            list={list}
-                                            linkTo={
-                                                list.shareToken
-                                                    ? `/share/${list.shareToken}`
-                                                    : `/list/${list._id}`
-                                            }
-                                            onLikeToggle={(nextLiked) => handleLikeToggle(list._id, list.userHasLiked)}
-                                            isLiked={list.userHasLiked ?? false}
-                                            isLikePending={toggleLikeMutation.isPending}
-                                            onAuthorClick={handleAuthorClick}
-                                        />
-                                    ))}
+                                <div className="masonry-grid mb-6">
+                                    {lists.map((list, index) => {
+                                        const delayClass = `fade-in-up-delay-${Math.min(index, 11)}`;
+                                        return (
+                                            <div
+                                                key={list._id}
+                                                className={`masonry-item fade-in-up ${delayClass}`}
+                                            >
+                                                <ListCard
+                                                    list={list}
+                                                    linkTo={list.shareToken ? `/share/${list.shareToken}` : `/list/${list._id}`}
+                                                    onLikeToggle={(nextLiked) => handleLikeToggle(list._id, list.userHasLiked)}
+                                                    isLiked={list.userHasLiked ?? false}
+                                                    isLikePending={toggleLikeMutation.isPending}
+                                                    onAuthorClick={handleAuthorClick}
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
 

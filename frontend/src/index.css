@@ -16,3 +16,55 @@ body {
   min-width: 320px; 
   min-height: 100vh; 
 }
+
+/* Fade-in animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Stagger delay classes for sequential appearance */
+.fade-in-up-delay-0 { animation-delay: 0ms; }
+.fade-in-up-delay-1 { animation-delay: 50ms; }
+.fade-in-up-delay-2 { animation-delay: 100ms; }
+.fade-in-up-delay-3 { animation-delay: 150ms; }
+.fade-in-up-delay-4 { animation-delay: 200ms; }
+.fade-in-up-delay-5 { animation-delay: 250ms; }
+.fade-in-up-delay-6 { animation-delay: 300ms; }
+.fade-in-up-delay-7 { animation-delay: 350ms; }
+.fade-in-up-delay-8 { animation-delay: 400ms; }
+.fade-in-up-delay-9 { animation-delay: 450ms; }
+.fade-in-up-delay-10 { animation-delay: 500ms; }
+.fade-in-up-delay-11 { animation-delay: 550ms; }
+
+.masonry-grid {
+  column-gap: 1.5rem;          
+}
+
+@media (min-width: 640px) {     
+  .masonry-grid {
+    columns: 2;
+  }
+}
+
+@media (min-width: 1024px) {    
+  .masonry-grid {
+    columns: 3;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;          
+  margin-bottom: 1.5rem;        
+}

@@ -63,10 +63,18 @@ function Dashboard() {
                             )}
 
                             {!isLoading && !error && listsData?.data?.length > 0 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {listsData.data.map((list) => (
-                                        <ListCard key={list._id} list={list} />
-                                    ))}
+                                <div className="masonry-grid">
+                                    {listsData.data.map((list, index) => {
+                                        const delayClass = `fade-in-up-delay-${Math.min(index, 11)}`;
+                                        return (
+                                            <div
+                                                key={list._id}
+                                                className={`masonry-item fade-in-up ${delayClass}`}
+                                            >
+                                                <ListCard list={list} />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
