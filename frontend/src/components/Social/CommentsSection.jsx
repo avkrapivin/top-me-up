@@ -15,6 +15,7 @@ import CommentSkeleton from '../UI/CommentSkeleton';
 import NetworkError from '../UI/NetworkError';
 import PropTypes from 'prop-types';
 import { useUserProfile } from '../../hooks/useAuthApi';
+import EmptyState from '../UI/EmptyState';
 
 function debounce(func, wait) {
     let timeout;
@@ -24,7 +25,24 @@ function debounce(func, wait) {
     };
     debounced.cancel = () => clearTimeout(timeout);
     return debounced;
-}
+};
+
+const CommentsEmptyIcon = () => (
+    <svg 
+        className="w-20 h-20 text-gray-400 dark:text-gray-600" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.5} 
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
+        />
+    </svg>
+);
 
 function CommentsSection({ listId, initialCount = 0, onCountChange }) {
     const { user } = useAuth();
@@ -332,9 +350,14 @@ function CommentsSection({ listId, initialCount = 0, onCountChange }) {
                     />
                 </div>
             ) : comments.length === 0 ? (
-                <p className="mt-6 text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                    No comments yet — be the first!
-                </p>
+                <div className="mt-6">
+                    <EmptyState
+                        icon={<CommentsEmptyIcon />}
+                        title="No comments yet"
+                        message="Be the first to share your thoughts about this list!"
+                        className="p-8"
+                    />
+                </div>
             ) : (
                 <div className="mt-6 space-y-4">
                     {comments.map((comment) => (

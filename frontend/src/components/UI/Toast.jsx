@@ -52,7 +52,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
                 <span className="flex-1">{message}</span>
                 <button
                     onClick={handleClose}
-                    className="ml-3 text-white hover:text-gray-200 transition-colors"
+                    className="ml-3 text-white hover:text-gray-200 dark:hover:text-gray-300 transition-colors p-1 rounded hover:bg-white/20"
                 >
                     ✕
                 </button>

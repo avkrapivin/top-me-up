@@ -53,10 +53,10 @@ function LikeButton({ isLiked, count, onToggle, disabled = false, size = 'md', c
             disabled={disabled || isProcessing || !onToggle}
             aria-pressed={optimisticLiked}
             title={optimisticLiked ? 'Remove like' : 'Add like'}
-            className={`inline-flex items-center ${config.gap} rounded-full border transition-colors font-medium ${
+            className={`inline-flex items-center ${config.gap} rounded-full border transition-all duration-200 font-medium ${
                 optimisticLiked
-                    ? 'bg-rose-500 border-rose-500 text-white hover:bg-rose-600'
-                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-rose-400'
+                    ? 'bg-rose-500 border-rose-500 text-white hover:bg-rose-600 hover:scale-110 active:scale-95'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-rose-400 hover:scale-110 active:scale-95'
             } ${disabled || isProcessing ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'} ${config.button} ${className}`}
         >
             <svg

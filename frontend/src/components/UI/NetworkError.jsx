@@ -1,21 +1,11 @@
 import PropTypes from 'prop-types';
+import { getErrorMessage, isNetworkError } from '../../utils/errorUtils';
 
 // Component for displaying network errors with a retry button
 function NetworkError({ error, onRetry, title = 'Connection Error', className = '' }) {
-    const isNetworkError = !error?.response || error.code === 'ECONNABORTED' || error.message?.includes('Network Error');
-    
-    const getErrorMessage = () => {
-        if (isNetworkError) {
-            return 'Unable to connect to the server. Please check your internet connection.';
-        }
-        if (error?.response?.status === 408 || error?.code === 'ECONNABORTED') {
-            return 'Request timed out. Please try again.';
-        }
-        if (error?.response?.status >= 500) {
-            return 'Server error. Please try again later.';
-        }
-        return error?.message || 'An error occurred. Please try again.';
-    };
+    const message = getErrorMessage(error);
+    const heading =
+        title || (isNetworkError(error) ? 'Connection Issue' : 'Something went wrong');
 
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center ${className}`}>
@@ -35,12 +25,8 @@ function NetworkError({ error, onRetry, title = 'Connection Error', className = 
                     />
                 </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                {title}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                {getErrorMessage()}
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{heading}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{message}</p>
             {onRetry && (
                 <button
                     onClick={onRetry}

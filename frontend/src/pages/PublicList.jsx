@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useListByShareToken, useToggleListLike } from '../hooks/useListApi';
 import ListCard from '../components/Lists/ListCard';
@@ -10,8 +10,34 @@ import Skeleton from '../components/UI/Skeleton';
 import NetworkError from '../components/UI/NetworkError';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
+import EmptyState from '../components/UI/EmptyState';
+
+const NotFoundIcon = () => (
+    <svg 
+        className="w-24 h-24 text-gray-400 dark:text-gray-600" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.5} 
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+        />
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.5} 
+            d="M13.5 13.5L10.5 10.5M10.5 13.5l3-3" 
+            opacity="0.5"
+        />
+    </svg>
+);
 
 function PublicList() {
+    const navigate = useNavigate();
     const { token } = useParams();
     const { data: listData, isLoading, error } = useListByShareToken(token);
     const { showInfo, showError } = useToast();
@@ -172,9 +198,16 @@ function PublicList() {
         return (
             <Layout>
                 <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 p-8">
-                    <p className="text-gray-600 dark:text-gray-300">
-                        List not found or not available
-                    </p>
+                    <div className="max-w-2xl mx-auto">
+                        <EmptyState
+                            icon={<NotFoundIcon />}
+                            title="List not found"
+                            message="This list doesn't exist, has been deleted, or is not available. You can browse other public lists or create your own."
+                            actionLabel="Browse Lists"
+                            onAction={() => navigate('/explore')}
+                            className="bg-white dark:bg-gray-800"
+                        />
+                    </div>
                 </div>
             </Layout>
         );

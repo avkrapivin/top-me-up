@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useUserProfile } from '../hooks/useAuthApi';
 import { useToast } from '../contexts/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
+import EmptyState from '../components/UI/EmptyState';
 
 const CATEGORY_FILTERS = [
     { label: 'All', value: 'all' },
@@ -23,6 +24,30 @@ const SORT_OPTIONS = [
 ];
 
 const PAGE_LIMIT = 12;
+
+const ExploreEmptyIcon = () => (
+    <svg
+        className="w-24 h-24 text-gray-400 dark:text-gray-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M9 9h.01M15 9h.01"
+            opacity="0.5"
+        />
+    </svg>
+);
 
 function Explore() {
     const [category, setCategory] = useState('all');
@@ -165,9 +190,9 @@ function Explore() {
                                         key={value}
                                         type="button"
                                         onClick={() => handleCategoryChange(value)}
-                                        className={`px-4 py-2 rounded-lg border transition ${category === value
+                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${category === value
                                             ? 'bg-blue-500 text-white border-blue-500'
-                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 active:scale-95'
                                             }`}
                                     >
                                         {label}
@@ -177,9 +202,9 @@ function Explore() {
                                     <button
                                         type="button"
                                         onClick={handleMyListsClick}
-                                        className={`px-4 py-2 rounded-lg border transition ${selectedAuthor?.id && userProfile?._id && String(selectedAuthor.id) === String(userProfile._id)
-                                                ? 'bg-blue-500 text-white border-blue-500'
-                                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${selectedAuthor?.id && userProfile?._id && String(selectedAuthor.id) === String(userProfile._id)
+                                            ? 'bg-blue-500 text-white border-blue-500'
+                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 active:scale-95'
                                             }`}
                                     >
                                         My Lists
@@ -193,9 +218,9 @@ function Explore() {
                                         key={value}
                                         type="button"
                                         onClick={() => handleSortChange(value)}
-                                        className={`px-4 py-2 rounded-lg border transition ${sortBy === value
+                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${category === value
                                             ? 'bg-blue-500 text-white border-blue-500'
-                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 active:scale-95'
                                             }`}
                                     >
                                         {label}
@@ -222,9 +247,20 @@ function Explore() {
                     ) : (
                         <>
                             {lists.length === 0 ? (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center text-gray-600 dark:text-gray-300">
-                                    No lists found for the selected filters.
-                                </div>
+                                <EmptyState
+                                    icon={<ExploreEmptyIcon />}
+                                    title="No lists found"
+                                    message={selectedAuthor
+                                        ? `No lists found by ${selectedAuthor.name}. Try adjusting your filters or browse all lists.`
+                                        : "No lists found for the selected filters. Try adjusting your filters or create your own list!"
+                                    }
+                                    actionLabel={selectedAuthor ? "Clear Filter" : "Clear Filters"}
+                                    onAction={selectedAuthor ? handleClearFilter : () => {
+                                        setCategory('all');
+                                        setSelectedAuthor(null);
+                                        setPage(1);
+                                    }}
+                                />
                             ) : (
                                 <div className="masonry-grid mb-6">
                                     {lists.map((list, index) => {
@@ -260,7 +296,7 @@ function Explore() {
                                         type="button"
                                         onClick={() => handlePageChange(pagination.page - 1)}
                                         disabled={pagination.page <= 1 || isFetching}
-                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95"
                                     >
                                         Previous
                                     </button>
@@ -268,7 +304,7 @@ function Explore() {
                                         type="button"
                                         onClick={() => handlePageChange(pagination.page + 1)}
                                         disabled={pagination.page >= pagination.pages || isFetching}
-                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95"
                                     >
                                         Next
                                     </button>

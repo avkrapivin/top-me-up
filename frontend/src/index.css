@@ -68,3 +68,27 @@ body {
   break-inside: avoid;          
   margin-bottom: 1.5rem;        
 }
+
+/* Global hover effects for buttons */
+button, a, [role="button"] {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Global hover effects for buttons */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Smooth transitions for cards */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effect for posters */
+.poster-hover {
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}

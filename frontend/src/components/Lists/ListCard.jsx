@@ -48,7 +48,7 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out card-hover">
             <Link to={destination} className="block p-6">
                 {/* Header */}
                 <div className="mb-4">
@@ -75,7 +75,7 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
                                         e.stopPropagation();
                                         onAuthorClick(list.user._id, list.user.displayName);
                                     }}
-                                    className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline font-medium transition-colors"
+                                    className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline font-medium transition-all duration-200 hover:scale-105"
                                 >
                                     {list.user.displayName}
                                 </button>
@@ -130,13 +130,13 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
                 <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-end gap-2">
                     <Link
                         to={`/builder/${list._id}`}
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm"
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                         Edit
                     </Link>
                     <button
                         onClick={handleDelete}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                         Delete
                     </button>
@@ -167,12 +167,12 @@ function ListItemPreview({ item }) {
                     height: config.height ? `${config.height}px` : 'auto',
                     aspectRatio: config.aspectRatio || undefined,
                 }}
-                className={`rounded shadow-md overflow-hidden flex items-center justify-center ${config.containerBg}`}
+                className={`rounded shadow-md overflow-hidden flex items-center justify-center ${config.containerBg} group`}
             >
                 <img
                     src={item.cachedData?.posterUrl || '/placeholder.png'}
                     alt={item.title}
-                    className={`${config.imageClass} w-full h-full`}
+                    className={`${config.imageClass} w-full h-full poster-hover group-hover:scale-105 group-hover:opacity-90`}
                 />
             </div>
             <p className="text-xs text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight overflow-hidden text-ellipsis">
@@ -199,7 +199,7 @@ function EmptySlot({ category = 'movies' }) {
                 style={{
                     width: `${config.width}px`,
                     height: config.height ? `${config.height}px` : 'auto',
-                    aspectRatio: config.aspectRatio || undefined, 
+                    aspectRatio: config.aspectRatio || undefined,
                 }}
                 className={`rounded shadow-md flex items-center justify-center ${config.containerBg}`}
             />

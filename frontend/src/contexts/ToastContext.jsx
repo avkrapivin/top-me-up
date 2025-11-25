@@ -68,15 +68,14 @@ export const ToastProvider = ({ children }) => {
     return (
         <ToastContext.Provider value={value}>
             {children}
-            <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] space-y-3 pointer-events-none max-w-sm w-[calc(100%-2rem)] sm:w-auto">
                 {toasts.map((toast, index) => (
                     <div
                         key={toast.id}
                         className="pointer-events-auto transform transition-all duration-300 ease-in-out"
                         style={{
-                            transform: `translateY(${index * 10}px) scale(${1 - index * 0.05})`,
-                            opacity: 1 - index * 0.2,
-                            zIndex: 1000 - index
+                            transform: `translateY(${index * 8}px)`,
+                            opacity: 1 - index * 0.15,
                         }}
                     >
                         <Toast
