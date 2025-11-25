@@ -1,9 +1,9 @@
-import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { useUserLists } from "../hooks/useListApi";
-import ListCard from "../components/Lists/ListCard";
-import Layout from "../components/Layout/Layout";
-import EmptyState from "../components/UI/EmptyState";
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useUserLists } from '../hooks/useListApi';
+import ListCard from '../components/Lists/ListCard';
+import Layout from '../components/Layout/Layout';
+import EmptyState from '../components/UI/EmptyState';
 import { useQueryClient } from '@tanstack/react-query';
 import NetworkError from '../components/UI/NetworkError';
 
@@ -39,21 +39,12 @@ const DashboardEmptyIcon = () => (
 
 function Dashboard() {
     const queryClient = useQueryClient();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { data: listsData, isLoading, isError, error } = useUserLists();
 
     const handleRetry = () => {
         queryClient.invalidateQueries({ queryKey: ['lists', 'user'] });
-    };
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-            navigate('/');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
     };
 
     return (

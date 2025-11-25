@@ -46,110 +46,113 @@ TopMeUp is a community-driven web application for creating and sharing top-10 li
 
 ### Frontend Structure (`frontend/`)
 
+```
 frontend/
 ├── public/
-│ ├── topmeup-icon.svg # Favicon
-│ └── vite.svg # Default Vite icon (can be removed)
+│   ├── topmeup-icon.svg          # Favicon
+│   └── vite.svg                  # Default Vite icon (can be removed)
 ├── src/
-│ ├── assets/ # Static assets
-│ ├── components/
-│ │ ├── Auth/ # Login/Register forms, ProtectedRoute
-│ │ ├── Export/ # Export functionality
-│ │ ├── Layout/ # Layout wrapper
-│ │ ├── Lists/ # ListCard, ListBuilder, ShareButton, ExportModal
-│ │ ├── Navigation/ # Navigation bar
-│ │ ├── Search/ # SearchBox, ContentCard
-│ │ ├── Social/ # CommentsSection, CommentItem, LikeButton, PublicShareButton
-│ │ └── UI/ # Skeleton, EmptyState, NetworkError, Toast, ConfirmModal
-│ ├── config/
-│ │ └── firebase.js # Firebase configuration
-│ ├── contexts/
-│ │ └── ToastContext.jsx # Toast notification context
-│ ├── hooks/
-│ │ ├── useAuth.js # Auth hook wrapper
-│ │ ├── useAuthApi.js # Auth API hooks (React Query)
-│ │ ├── useListApi.js # List API hooks (React Query)
-│ │ └── useSearchApi.js # Search API hooks
-│ ├── pages/
-│ │ ├── Dashboard.jsx # User's lists
-│ │ ├── Explore.jsx # Public lists browser
-│ │ ├── Home.jsx # Landing page
-│ │ ├── ListBuilder.jsx # List creation/editing
-│ │ ├── Profile.jsx # User profile settings
-│ │ └── PublicList.jsx # Public list view (by share token)
-│ ├── routes/
-│ │ └── AppRoutes.jsx # Route definitions
-│ ├── services/
-│ │ └── api.js # Axios instance with interceptors
-│ ├── store/
-│ │ └── authStore.js # Zustand auth store
-│ ├── utils/
-│ │ └── errorUtils.js # Centralized error handling utilities
-│ ├── App.jsx # Root component
-│ ├── main.jsx # Entry point
-│ └── index.css # Global styles (Tailwind + custom)
-├── index.html # HTML template
+│   ├── assets/                   # Static assets
+│   ├── components/
+│   │   ├── Auth/                 # Login/Register forms, ProtectedRoute
+│   │   ├── Export/               # Export functionality
+│   │   ├── Layout/               # Layout wrapper
+│   │   ├── Lists/                # ListCard, ListBuilder, ShareButton, ExportModal
+│   │   ├── Navigation/            # Navigation bar
+│   │   ├── Search/               # SearchBox, ContentCard
+│   │   ├── Social/               # CommentsSection, CommentItem, LikeButton, PublicShareButton
+│   │   └── UI/                   # Skeleton, EmptyState, NetworkError, Toast, ConfirmModal
+│   ├── config/
+│   │   └── firebase.js           # Firebase configuration
+│   ├── contexts/
+│   │   └── ToastContext.jsx      # Toast notification context
+│   ├── hooks/
+│   │   ├── useAuth.js            # Auth hook wrapper
+│   │   ├── useAuthApi.js         # Auth API hooks (React Query)
+│   │   ├── useListApi.js         # List API hooks (React Query)
+│   │   └── useSearchApi.js       # Search API hooks
+│   ├── pages/
+│   │   ├── Dashboard.jsx         # User's lists
+│   │   ├── Explore.jsx          # Public lists browser
+│   │   ├── Home.jsx             # Landing page
+│   │   ├── ListBuilder.jsx     # List creation/editing
+│   │   ├── Profile.jsx         # User profile settings
+│   │   └── PublicList.jsx       # Public list view (by share token)
+│   ├── routes/
+│   │   └── AppRoutes.jsx       # Route definitions
+│   ├── services/
+│   │   └── api.js              # Axios instance with interceptors
+│   ├── store/
+│   │   └── authStore.js        # Zustand auth store
+│   ├── utils/
+│   │   └── errorUtils.js       # Centralized error handling utilities
+│   ├── App.jsx                 # Root component
+│   ├── main.jsx                # Entry point
+│   └── index.css               # Global styles (Tailwind + custom)
+├── index.html                  # HTML template
 ├── package.json
-├── vite.config.js
-└── README.md
+└── vite.config.js
+```
 
 ### Backend Structure (`backend/`)
 
+```
 backend/
 ├── src/
-│ ├── config/
-│ │ ├── database.js # MongoDB connection
-│ │ ├── rawg.js # RAWG API config
-│ │ ├── spotify.js # Spotify API config
-│ │ └── tmdb.js # TMDB API config
-│ ├── controllers/
-│ │ ├── authController.js # Authentication endpoints
-│ │ ├── commentController.js # Comment CRUD operations
-│ │ ├── listController.js # List CRUD, public lists, likes
-│ │ ├── searchController.js # Search functionality
-│ │ └── statisticsController.js # Statistics endpoints
-│ ├── middleware/
-│ │ ├── asyncHandler.js # Async error wrapper
-│ │ ├── auth.js # Firebase JWT verification
-│ │ ├── errorHandler.js # Global error handler
-│ │ ├── rateLimiter.js # Rate limiting
-│ │ ├── resourceLoader.js # Resource loading middleware
-│ │ └── roleCheck.js # Role-based access control
-│ ├── models/
-│ │ ├── Comment.js # Comment schema
-│ │ ├── List.js # List schema
-│ │ ├── Statistics.js # Statistics schema
-│ │ ├── User.js # User schema
-│ │ └── index.js # Model exports
-│ ├── routes/
-│ │ ├── auth.js # Auth routes
-│ │ ├── comments.js # Comment routes
-│ │ ├── lists.js # List routes
-│ │ ├── proxy.js # Proxy routes (external APIs)
-│ │ ├── search.js # Search routes
-│ │ ├── statistics.js # Statistics routes
-│ │ └── index.js # Route aggregator
-│ ├── services/
-│ │ ├── external/
-│ │ │ ├── baseService.js # Base external API service
-│ │ │ ├── rawgService.js # RAWG API service
-│ │ │ ├── spotifyService.js # Spotify API service
-│ │ │ └── tmdbService.js # TMDB API service
-│ │ └── searchService.js # Search service
-│ ├── utils/
-│ │ ├── apiValidator.js # API validation utilities
-│ │ ├── cache.js # Caching utilities
-│ │ ├── errors.js # Error classes
-│ │ ├── logger.js # Logging utilities
-│ │ ├── paginationHelper.js # Pagination utilities
-│ │ ├── responseHelper.js # Response formatting
-│ │ ├── retry.js # Retry logic
-│ │ ├── userHelper.js # User utilities
-│ │ └── validationHelper.js # Validation utilities
-│ └── server.js # Express server setup
-├── tests/ # Test files
-├── logs/ # Application logs
+│   ├── config/
+│   │   ├── database.js          # MongoDB connection
+│   │   ├── rawg.js              # RAWG API config
+│   │   ├── spotify.js           # Spotify API config
+│   │   └── tmdb.js              # TMDB API config
+│   ├── controllers/
+│   │   ├── authController.js    # Authentication endpoints
+│   │   ├── commentController.js # Comment CRUD operations
+│   │   ├── listController.js    # List CRUD, public lists, likes
+│   │   ├── searchController.js  # Search functionality
+│   │   └── statisticsController.js # Statistics endpoints
+│   ├── middleware/
+│   │   ├── asyncHandler.js      # Async error wrapper
+│   │   ├── auth.js              # Firebase JWT verification
+│   │   ├── errorHandler.js      # Global error handler
+│   │   ├── rateLimiter.js       # Rate limiting
+│   │   ├── resourceLoader.js    # Resource loading middleware
+│   │   └── roleCheck.js         # Role-based access control
+│   ├── models/
+│   │   ├── Comment.js           # Comment schema
+│   │   ├── List.js              # List schema
+│   │   ├── Statistics.js        # Statistics schema
+│   │   ├── User.js              # User schema
+│   │   └── index.js             # Model exports
+│   ├── routes/
+│   │   ├── auth.js              # Auth routes
+│   │   ├── comments.js         # Comment routes
+│   │   ├── lists.js            # List routes
+│   │   ├── proxy.js            # Proxy routes (external APIs)
+│   │   ├── search.js           # Search routes
+│   │   ├── statistics.js       # Statistics routes
+│   │   └── index.js            # Route aggregator
+│   ├── services/
+│   │   ├── external/
+│   │   │   ├── baseService.js  # Base external API service
+│   │   │   ├── rawgService.js  # RAWG API service
+│   │   │   ├── spotifyService.js # Spotify API service
+│   │   │   └── tmdbService.js  # TMDB API service
+│   │   └── searchService.js    # Search service
+│   ├── utils/
+│   │   ├── apiValidator.js     # API validation utilities
+│   │   ├── cache.js            # Caching utilities
+│   │   ├── errors.js           # Error classes
+│   │   ├── logger.js           # Logging utilities
+│   │   ├── paginationHelper.js # Pagination utilities
+│   │   ├── responseHelper.js   # Response formatting
+│   │   ├── retry.js            # Retry logic
+│   │   ├── userHelper.js       # User utilities
+│   │   └── validationHelper.js # Validation utilities
+│   └── server.js               # Express server setup
+├── tests/                      # Test files
+├── logs/                       # Application logs
 └── package.json
+```
 
 
 ## Getting Started
@@ -164,34 +167,41 @@ backend/
 ### Frontend Setup
 
 1. **Install dependencies**:
+```
    cd frontend
    npm install
+```
 
 2. **Configure environment variables**:
    Create `frontend/.env`:
+```
    VITE_API_BASE_URL=http://localhost:3000/api
    VITE_FIREBASE_API_KEY=your-firebase-api-key
    VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
    VITE_FIREBASE_PROJECT_ID=your-project-id
    VITE_FIREBASE_APP_ID=your-app-id
    VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+```
    
 3. **Configure Firebase**:
    - Copy Firebase web config to `frontend/src/config/firebase.js`
    - Enable Email/Password, Google, and Facebook providers in Firebase Console
 
 4. **Run development server**:
-   npm run dev
+   `npm run dev`
       Visit `http://localhost:5173`
 
 ### Backend Setup
 
 1. **Install dependencies**:
+```   
    cd backend
    npm install
+```
 
 2. **Configure environment variables**:
    Create `backend/.env`:
+```
    PORT=3000
    MONGODB_URI=mongodb://localhost:27017/topmeup
    FIREBASE_PROJECT_ID=your-project-id
@@ -199,11 +209,12 @@ backend/
    SPOTIFY_CLIENT_ID=your-spotify-client-id
    SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
    RAWG_API_KEY=your-rawg-key
+```
 
 3. **Start MongoDB** (if running locally)
 
 4. **Run development server**:
-   npm run dev
+   `npm run dev`
    
 
 ## Scripts

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import Toast from '../components/UI/Toast';
 
 const ToastContext = createContext();
@@ -22,7 +22,7 @@ export const ToastProvider = ({ children }) => {
         setToasts(prev => {
             const newToasts = [...prev, newToast];
             if (newToasts.length > MAX_TOASTS) {
-                return newToast.slice(-MAX_TOASTS);
+                return newToasts.slice(-MAX_TOASTS);
             }
             return newToasts;
         });

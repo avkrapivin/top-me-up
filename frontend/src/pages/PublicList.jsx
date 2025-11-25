@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useListByShareToken, useToggleListLike } from '../hooks/useListApi';
-import ListCard from '../components/Lists/ListCard';
 import Layout from '../components/Layout/Layout';
 import LikeButton from '../components/Social/LikeButton';
 import CommentsSection from '../components/Social/CommentsSection';
