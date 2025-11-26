@@ -7,6 +7,9 @@ function Layout({ children, showNavigation = true, className = '' }) {
             <main className={`flex-1 ${className}`}>
                 {children}
             </main>
+            <footer className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                © {new Date().getFullYear()} TopMeUp
+            </footer>
         </div>
     );
 }
