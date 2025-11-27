@@ -22,6 +22,8 @@ app.use(helmet());
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'https://topmeupweb.com',
+    'https://www.topmeupweb.com',
     process.env.FRONTEND_URL,
     process.env.BACKEND_URL?.replace('/api', '')
 ].filter(Boolean);
