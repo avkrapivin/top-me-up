@@ -1,2 +1,6 @@
 .cursor/
 .cursor/**
+.infra/**
+.frontend/.env.production
+.infra/topmeup-ec2-params.json
+.infra/topmeup-ec2.yml
