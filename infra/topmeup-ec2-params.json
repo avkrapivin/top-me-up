@@ -1,0 +1,34 @@
+[
+    {
+      "ParameterKey": "KeyName",
+      "ParameterValue": "aws-virginia-key"
+    },
+    {
+      "ParameterKey": "HostedZoneId",
+      "ParameterValue": "Z104526349ZGH87E3QMM" 
+    },
+    {
+      "ParameterKey": "DomainName",
+      "ParameterValue": "topmeupweb.com"
+    },
+    {
+      "ParameterKey": "GitRepoUrl",
+      "ParameterValue": "https://github.com/avkrapivin/top-me-up.git"
+    },
+    {
+      "ParameterKey": "VpcId",
+      "ParameterValue": "vpc-0f0f5726ab5560f3c"
+    },
+    {
+      "ParameterKey": "PublicSubnetId",
+      "ParameterValue": "subnet-0d5c07457e52c8cee"
+    },
+    {
+      "ParameterKey": "MongoDbUri",
+      "ParameterValue": "mongodb+srv://withoutabody:Pn6wBzj9Tl0Jh8ro@cluster0.y8fxr.mongodb.net/topmeup?retryWrites=true&w=majority&appName=Cluster0"
+    },
+    {
+      "ParameterKey": "JwtSecret",
+      "ParameterValue": "topmeup-super-secret-jwt-key-2025-production-ready"
+    }
+  ]

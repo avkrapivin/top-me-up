@@ -1,0 +1,237 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: TopMeUpWeb - EC2 t2.micro + Docker backend + Nginx + Route53
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: aws-virginia-key
+    Description: Existing EC2 KeyPair name for SSH access
+
+  HostedZoneId:
+    Type: String
+    Default: Z104526349ZGH87E3QMM
+    Description: Route53 Hosted Zone ID for your domain (e.g. Z123456789ABC)
+
+  DomainName:
+    Type: String
+    Default: topmeupweb.com
+    Description: Root domain (e.g. topmeupweb.com)
+
+  GitRepoUrl:
+    Type: String
+    Default: https://github.com/avkrapivin/top-me-up.git
+    Description: Git repository URL with frontend/backend (HTTPS)
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-0f0f5726ab5560f3c
+    Description: VPC where to deploy (choose default VPC)
+
+  PublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-0d5c07457e52c8cee
+    Description: Public subnet in the chosen VPC (for EC2)
+
+  MongoDbUri:
+    Type: String
+    Default: mongodb+srv://withoutabody:Pn6wBzj9Tl0Jh8ro@cluster0.y8fxr.mongodb.net/topmeup?retryWrites=true&w=majority&appName=Cluster0
+    NoEcho: true
+    Description: MongoDB Atlas connection string (MONGODB_URI)
+
+  JwtSecret:
+    Type: String
+    Default: topmeup-super-secret-jwt-key-2025-production-ready
+    NoEcho: true
+    Description: JWT secret for backend (JWT_SECRET)
+
+  LatestAmiId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP, HTTPS, SSH
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 77.137.25.70/32
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0        # HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0        # HTTPS
+      Tags:
+        - Key: Name
+          Value: TopMeUpWeb-SG
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Path: /
+      Tags:
+        - Key: Name
+          Value: TopMeUpWeb-InstanceRole
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+      Path: /
+
+  AppEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: TopMeUpWeb-EIP
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref InstanceProfile
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: TopMeUpWeb-EC2
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -xe
+
+          # ==== Update system ====
+          yum update -y
+
+          # ==== Install Docker ====
+          amazon-linux-extras install docker -y || yum install -y docker
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ec2-user
+
+          # ==== Install git ====
+          yum install -y git
+
+          # ==== Install Node.js 20 (for frontend build) ====
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+          yum install -y nodejs
+
+          # ==== Install nginx ====
+          yum install -y nginx
+          systemctl enable nginx
+          systemctl start nginx
+
+          # ==== Clone repository ====
+          cd /home/ec2-user
+          git clone ${GitRepoUrl} app
+          chown -R ec2-user:ec2-user app
+          cd app
+
+          # ==== Frontend: env and build ====
+          cd frontend
+
+          cat <<EOF > .env.production
+          VITE_API_BASE_URL=https://${DomainName}/api
+          EOF
+
+          npm install
+          npm run build
+          # Build in /home/ec2-user/app/frontend/dist
+
+          # ==== Backend: build Docker image ====
+          cd /home/ec2-user/app/backend
+          docker build -t topmeupweb-backend .
+
+          # ==== Start backend container ====
+          docker run -d --name topmeupweb-backend --restart always \
+            -p 5000:5000 \
+            -e PORT=5000 \
+            -e NODE_ENV=production \
+            -e JWT_SECRET=${JwtSecret} \
+            -e MONGODB_URI=${MongoDbUri} \
+            -e FRONTEND_URL=https://${DomainName} \
+            -e BACKEND_URL=https://${DomainName} \
+            topmeupweb-backend
+
+          # ==== Nginx config (HTTP, without HTTPS, only 80 port) ====
+          cat <<'NGINXCONF' > /etc/nginx/conf.d/topmeupweb.conf
+          server {
+              listen 80;
+              server_name ${DomainName} www.${DomainName};
+
+              root /home/ec2-user/app/frontend/dist;
+              index index.html;
+
+              location / {
+                  try_files $uri /index.html;
+              }
+
+              location /api/ {
+                  proxy_pass         http://localhost:5000/;
+                  proxy_http_version 1.1;
+                  proxy_set_header   Host $host;
+                  proxy_set_header   X-Real-IP $remote_addr;
+                  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header   X-Forwarded-Proto $scheme;
+              }
+          }
+          NGINXCONF
+
+          systemctl restart nginx
+
+  EipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt AppEIP.AllocationId
+      InstanceId: !Ref AppInstance
+
+  DnsRecordRoot:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      TTL: 60
+      ResourceRecords:
+        - !Ref AppEIP
+
+  DnsRecordWWW:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "www.${DomainName}"
+      Type: A
+      TTL: 60
+      ResourceRecords:
+        - !Ref AppEIP
+
+Outputs:
+  InstancePublicIP:
+    Description: Public IP of the EC2 instance
+    Value: !Ref AppEIP
+
+  SiteHTTP:
+    Description: HTTP URL of the site
+    Value: !Sub "http://${DomainName}"
