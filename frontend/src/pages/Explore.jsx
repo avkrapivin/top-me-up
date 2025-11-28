@@ -218,7 +218,7 @@ function Explore() {
                                         key={value}
                                         type="button"
                                         onClick={() => handleSortChange(value)}
-                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${category === value
+                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${sortBy === value
                                             ? 'bg-blue-500 text-white border-blue-500'
                                             : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 active:scale-95'
                                             }`}
