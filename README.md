@@ -154,6 +154,13 @@ backend/
 └── package.json
 ```
 
+### Infrastructure Structure (`infra/`)
+
+```
+infra/
+├── topmeup-ec2.yml          # CloudFormation template for AWS deployment
+└── topmeup-ec2-params.json  # CloudFormation parameters (optional)
+```
 
 ## Getting Started
 
@@ -185,7 +192,7 @@ backend/
    
 3. **Configure Firebase**:
    - Copy Firebase web config to `frontend/src/config/firebase.js`
-   - Enable Email/Password, Google, and Facebook providers in Firebase Console
+   - Enable Email/Password and Google providers in Firebase Console
 
 4. **Run development server**:
    `npm run dev`
@@ -202,13 +209,19 @@ backend/
 2. **Configure environment variables**:
    Create `backend/.env`:
 ```
-   PORT=3000
+   PORT=5000
    MONGODB_URI=mongodb://localhost:27017/topmeup
    FIREBASE_PROJECT_ID=your-project-id
+   FIREBASE_CLIENT_EMAIL=your-firebase-client-email
+   FIREBASE_PRIVATE_KEY="your-firebase-private-key"
    TMDB_API_KEY=your-tmdb-key
    SPOTIFY_CLIENT_ID=your-spotify-client-id
    SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
    RAWG_API_KEY=your-rawg-key
+   JWT_SECRET=your-jwt-secret
+   NODE_ENV=development
+   FRONTEND_URL=http://localhost:5173
+   BACKEND_URL=http://localhost:5000
 ```
 
 3. **Start MongoDB** (if running locally)
@@ -229,6 +242,123 @@ backend/
 - `npm run dev` - Start development server with nodemon
 - `npm start` - Start production server
 - `npm test` - Run tests
+
+## Deployment
+
+### AWS EC2 Overview
+
+- Frontend: Static files served by Nginx from `/home/ec2-user/app/frontend/dist`
+- Backend: Node.js/Express in Docker container on port 5000
+- Nginx: Reverse proxy for `/api/*` → `localhost:5000`
+- Infra: Route 53 + CloudFormation (`infra/topmeup-ec2.yml`) + t2.micro EC2
+
+### Initial Deployment
+
+1. **Create change set to preview resources**
+```
+aws cloudformation create-change-set \
+  --stack-name topmeupweb \
+  --change-set-name topmeupweb-initial \
+  --change-set-type CREATE \
+  --template-body file://infra/topmeup-ec2.yml \
+  --capabilities CAPABILITY_IAM \
+  --region us-east-1 \
+  --profile your-profile
+```
+
+2. **Execute the approved change set**
+```
+aws cloudformation execute-change-set \
+  --stack-name topmeupweb \
+  --change-set-name topmeupweb-initial \
+  --region us-east-1 \
+  --profile your-profile2. **Configure backend container on EC2 (after SSH)**
+```
+
+3. **Connect to the EC2 instance**
+`ssh -i "path/to/key.pem" ec2-user@<instance-ip>`
+
+4. **Go to backend folder**
+`cd /home/ec2-user/app/backend`
+
+5. **Stop old container**
+`docker stop topmeupweb-backend`
+
+6. **Remove old container**
+`docker rm topmeupweb-backend`
+
+7. **Build a fresh production image**
+`docker build -t topmeupweb-backend`
+
+8. **Run backend with all required environment variables**
+```
+docker run -d --name topmeupweb-backend --restart always \
+  -p 5000:5000 \
+  -e PORT=5000 \
+  -e NODE_ENV=production \
+  -e JWT_SECRET=your-jwt-secret \
+  -e MONGODB_URI="your-mongodb-uri" \
+  -e FRONTEND_URL=https://your-domain.com \
+  -e BACKEND_URL=https://your-domain.com \
+  -e FIREBASE_PROJECT_ID=your-project-id \
+  -e FIREBASE_CLIENT_EMAIL=your-client-email \
+  -e FIREBASE_PRIVATE_KEY="your-private-key" \
+  -e TMDB_API_KEY=your-tmdb-key \
+  -e SPOTIFY_CLIENT_ID=your-spotify-client-id \
+  -e SPOTIFY_CLIENT_SECRET=your-spotify-secret \
+  -e RAWG_API_KEY=your-rawg-key \
+  topmeupweb-backend3. **(Optional) Issue HTTPS certificates**
+```
+9. **Request and install Let's Encrypt certificates via certbot**
+`sudo certbot --nginx -d your-domain.com -d www.your-domain.com`
+
+### Updating the Application
+
+1. **Stage all changes**
+`git add .`
+
+2. **Commit with a descriptive message**
+`git commit -m "Describe change"`
+
+3. **Push to the main branch**
+`git push origin main`
+
+4. **Connect to the EC2 instance**
+`ssh -i "path/to/key.pem" ec2-user@<instance-ip>`
+
+5. **Navigate to the repo root**
+`cd /home/ec2-user/app`
+
+6. **Pull latest code**
+`git pull origin main`
+
+7. **Rebuild frontend assets**
+```
+cd /home/ec2-user/app/frontend
+npm install
+npm run build
+```
+
+8. **Rebuild backend container**
+```
+cd /home/ec2-user/app/backend
+docker stop topmeupweb-backend
+docker rm topmeupweb-backend
+```
+
+9. **Re-run the docker run command from Initial Deployment (same environment variables as before)**
+
+10. **Check that the container is running**
+`docker ps`
+
+11. **Check the logs if something is wrong**
+`docker logs topmeupweb-backend`
+
+12. **Check that the backend is responding**
+`curl http://localhost:5000/api/health`
+
+13. **Restart Nginx (if necessary)**
+`sudo systemctl restart nginx`
 
 ## Firebase Authentication Setup
 
