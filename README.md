@@ -55,10 +55,9 @@ frontend/
 │   ├── assets/                   # Static assets
 │   ├── components/
 │   │   ├── Auth/                 # Login/Register forms, ProtectedRoute
-│   │   ├── Export/               # Export functionality
 │   │   ├── Layout/               # Layout wrapper
 │   │   ├── Lists/                # ListCard, ListBuilder, ShareButton, ExportModal
-│   │   ├── Navigation/            # Navigation bar
+│   │   ├── Navigation/           # Navigation bar
 │   │   ├── Search/               # SearchBox, ContentCard
 │   │   ├── Social/               # CommentsSection, CommentItem, LikeButton, PublicShareButton
 │   │   └── UI/                   # Skeleton, EmptyState, NetworkError, Toast, ConfirmModal
@@ -73,23 +72,23 @@ frontend/
 │   │   └── useSearchApi.js       # Search API hooks
 │   ├── pages/
 │   │   ├── Dashboard.jsx         # User's lists
-│   │   ├── Explore.jsx          # Public lists browser
-│   │   ├── Home.jsx             # Landing page
-│   │   ├── ListBuilder.jsx     # List creation/editing
-│   │   ├── Profile.jsx         # User profile settings
-│   │   └── PublicList.jsx       # Public list view (by share token)
+│   │   ├── Explore.jsx           # Public lists browser
+│   │   ├── Home.jsx              # Landing page
+│   │   ├── ListBuilder.jsx       # List creation/editing
+│   │   ├── Profile.jsx           # User profile settings
+│   │   └── PublicList.jsx        # Public list view (by share token)
 │   ├── routes/
-│   │   └── AppRoutes.jsx       # Route definitions
+│   │   └── AppRoutes.jsx         # Route definitions
 │   ├── services/
-│   │   └── api.js              # Axios instance with interceptors
+│   │   └── api.js                # Axios instance with interceptors
 │   ├── store/
-│   │   └── authStore.js        # Zustand auth store
+│   │   └── authStore.js          # Zustand auth store
 │   ├── utils/
-│   │   └── errorUtils.js       # Centralized error handling utilities
-│   ├── App.jsx                 # Root component
-│   ├── main.jsx                # Entry point
-│   └── index.css               # Global styles (Tailwind + custom)
-├── index.html                  # HTML template
+│   │   └── errorUtils.js         # Centralized error handling utilities
+│   ├── App.jsx                   # Root component
+│   ├── main.jsx                  # Entry point
+│   └── index.css                 # Global styles (Tailwind + custom)
+├── index.html                    # HTML template
 ├── package.json
 └── vite.config.js
 ```
@@ -125,32 +124,32 @@ backend/
 │   │   └── index.js             # Model exports
 │   ├── routes/
 │   │   ├── auth.js              # Auth routes
-│   │   ├── comments.js         # Comment routes
-│   │   ├── lists.js            # List routes
-│   │   ├── proxy.js            # Proxy routes (external APIs)
-│   │   ├── search.js           # Search routes
-│   │   ├── statistics.js       # Statistics routes
-│   │   └── index.js            # Route aggregator
+│   │   ├── comments.js          # Comment routes
+│   │   ├── lists.js             # List routes
+│   │   ├── proxy.js             # Proxy routes (external APIs)
+│   │   ├── search.js            # Search routes
+│   │   ├── statistics.js        # Statistics routes
+│   │   └── index.js             # Route aggregator
 │   ├── services/
 │   │   ├── external/
-│   │   │   ├── baseService.js  # Base external API service
-│   │   │   ├── rawgService.js  # RAWG API service
+│   │   │   ├── baseService.js   # Base external API service
+│   │   │   ├── rawgService.js   # RAWG API service
 │   │   │   ├── spotifyService.js # Spotify API service
-│   │   │   └── tmdbService.js  # TMDB API service
-│   │   └── searchService.js    # Search service
+│   │   │   └── tmdbService.js   # TMDB API service
+│   │   └── searchService.js     # Search service
 │   ├── utils/
-│   │   ├── apiValidator.js     # API validation utilities
-│   │   ├── cache.js            # Caching utilities
-│   │   ├── errors.js           # Error classes
-│   │   ├── logger.js           # Logging utilities
-│   │   ├── paginationHelper.js # Pagination utilities
-│   │   ├── responseHelper.js   # Response formatting
-│   │   ├── retry.js            # Retry logic
-│   │   ├── userHelper.js       # User utilities
-│   │   └── validationHelper.js # Validation utilities
-│   └── server.js               # Express server setup
-├── tests/                      # Test files
-├── logs/                       # Application logs
+│   │   ├── apiValidator.js      # API validation utilities
+│   │   ├── cache.js             # Caching utilities
+│   │   ├── errors.js            # Error classes
+│   │   ├── logger.js            # Logging utilities
+│   │   ├── paginationHelper.js  # Pagination utilities
+│   │   ├── responseHelper.js    # Response formatting
+│   │   ├── retry.js             # Retry logic
+│   │   ├── userHelper.js        # User utilities
+│   │   └── validationHelper.js  # Validation utilities
+│   └── server.js                # Express server setup
+├── tests/                       # Test files
+├── logs/                        # Application logs
 └── package.json
 ```
 
