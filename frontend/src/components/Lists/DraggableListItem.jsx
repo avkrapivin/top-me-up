@@ -51,7 +51,7 @@ function DraggableListItem({ item, rank, onRemove }) {
             ref={setNodeRef}
             style={style}
             className={`
-                flex items-start gap-2 p-2 rounded-lg transition-all duration-200
+                flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left p-2 rounded-lg transition-all duration-200
                 ${isDragging ? 'shadow-lg z-10 bg-white dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
             `}
         >
@@ -105,7 +105,7 @@ function DraggableListItem({ item, rank, onRemove }) {
             </div>
 
             {/* Info */}
-            <div className="flex-1 pt-1 min-w-0">
+            <div className="flex-1 pt-3 sm:pt-1 min-w-0 w-full">
                 <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 mb-1">
                     {item.title}
                 </h4>

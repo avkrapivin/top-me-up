@@ -12,7 +12,7 @@ function EmptySlot({ rank, isDropTarget = false, category = 'movies' }) {
     const slotDimensions = getSlotDimensions(category);
 
     return (
-        <div className="flex items-start gap-2 p-2">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left p-2">
             <div
                 style={{
                     width: slotDimensions.width,
@@ -27,7 +27,7 @@ function EmptySlot({ rank, isDropTarget = false, category = 'movies' }) {
                     }
                 `}
             />
-            <div className="flex-1 pt-1" />
+            <div className="flex-1 pt-3 sm:pt-1 w-full" />
         </div>
     );
 }

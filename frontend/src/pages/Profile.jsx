@@ -172,18 +172,18 @@ function Profile() {
                                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="Enter your display name"
                                 />
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                     <button
                                         onClick={handleSave}
                                         disabled={!isDirty || updateProfileMutation.isPending}
-                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {updateProfileMutation.isPending ? 'Saving…' : 'Save'}
                                     </button>
                                     <button
                                         onClick={handleCancel}
                                         disabled={!isDirty || updateProfileMutation.isPending}
-                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition disabled:opacity-50"
+                                        className="w-full sm:w-auto px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>

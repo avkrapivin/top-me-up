@@ -51,7 +51,7 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
         }
 
         try {
-            const result = await generateTokenMutation.mutateAsync(listId); 
+            const result = await generateTokenMutation.mutateAsync(listId);
             queryClient.setQueryData(['list', listId, 'share'], result);
             setShowSharePanel(true);
             showSuccess('Share link generated!');
@@ -109,65 +109,142 @@ const ShareButton = ({ listId, listTitle, isPublicPersisted, hasUnsavedChanges }
             </button>
 
             {showSharePanel && shareUrl && (
-                <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 min-w-[300px] z-50 border border-gray-200 dark:border-gray-700">
-                    <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Public link:
-                        </label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={shareUrl}
-                                readOnly
-                                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                            <button
-                                onClick={handleCopyLink}
-                                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition"
-                            >
-                                Copy
-                            </button>
+                <>
+                    {/* Mobile fullscreen modal */}
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 sm:hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full mx-4 max-w-md">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Share List</h2>
+                                <button
+                                    onClick={() => setShowSharePanel(false)}
+                                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
+                                >
+                                    ✕
+                                </button>
+                            </div>
 
-                            <button
-                                onClick={handleResetToken}
-                                disabled={resetTokenMutation.isPending}
-                                className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 text-sm rounded-md transition disabled:opacity-50"
-                            >
-                                {resetTokenMutation.isPending ? 'Resetting…' : 'Reset'}
-                            </button>
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Public link:
+                                </label>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                        type="text"
+                                        value={shareUrl}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleCopyLink}
+                                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition"
+                                        >
+                                            Copy
+                                        </button>
+                                        <button
+                                            onClick={handleResetToken}
+                                            disabled={resetTokenMutation.isPending}
+                                            className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 text-sm rounded-md transition disabled:opacity-50"
+                                        >
+                                            {resetTokenMutation.isPending ? 'Resetting…' : 'Reset'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Share on social media:</p>
+                                <div className="flex flex-col gap-2">
+                                    <a
+                                        href={getSocialShareUrl('twitter')}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full px-3 py-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-sm rounded-md text-center transition"
+                                    >
+                                        Twitter
+                                    </a>
+                                    <a
+                                        href={getSocialShareUrl('facebook')}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white text-sm rounded-md text-center transition"
+                                    >
+                                        Facebook
+                                    </a>
+                                    <a
+                                        href={getSocialShareUrl('telegram')}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full px-3 py-2 bg-[#0088cc] hover:bg-[#0077b5] text-white text-sm rounded-md text-center transition"
+                                    >
+                                        Telegram
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Share on social media:</p>
-                        <div className="flex gap-2">
-                            <a
-                                href={getSocialShareUrl('twitter')}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 px-3 py-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-sm rounded-md text-center transition"
-                            >
-                                Twitter
-                            </a>
-                            <a
-                                href={getSocialShareUrl('facebook')}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white text-sm rounded-md text-center transition"
-                            >
-                                Facebook
-                            </a>
-                            <a
-                                href={getSocialShareUrl('telegram')}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 px-3 py-2 bg-[#0088cc] hover:bg-[#0077b5] text-white text-sm rounded-md text-center transition"
-                            >
-                                Telegram
-                            </a>
+                    {/* Desktop modal - visible only on desktop (sm:hidden) */}
+                    <div className="hidden sm:block absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 min-w-[300px] z-50 border border-gray-200 dark:border-gray-700">
+                        <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Public link:
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={shareUrl}
+                                    readOnly
+                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                                <button
+                                    onClick={handleCopyLink}
+                                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition"
+                                >
+                                    Copy
+                                </button>
+
+                                <button
+                                    onClick={handleResetToken}
+                                    disabled={resetTokenMutation.isPending}
+                                    className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 text-sm rounded-md transition disabled:opacity-50"
+                                >
+                                    {resetTokenMutation.isPending ? 'Resetting…' : 'Reset'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Share on social media:</p>
+                            <div className="flex gap-2">
+                                <a
+                                    href={getSocialShareUrl('twitter')}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 px-3 py-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-sm rounded-md text-center transition"
+                                >
+                                    Twitter
+                                </a>
+                                <a
+                                    href={getSocialShareUrl('facebook')}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white text-sm rounded-md text-center transition"
+                                >
+                                    Facebook
+                                </a>
+                                <a
+                                    href={getSocialShareUrl('telegram')}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 px-3 py-2 bg-[#0088cc] hover:bg-[#0077b5] text-white text-sm rounded-md text-center transition"
+                                >
+                                    Telegram
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* дальше можно оставить только то, что реально нужно проекту */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

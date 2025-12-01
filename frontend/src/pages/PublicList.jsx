@@ -247,8 +247,8 @@ function PublicList() {
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 max-w-xl mx-auto">
-                        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                            <div className="flex items-center gap-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                                 <span>{list.items?.length || 0}/10 items</span>
                                 {list.viewsCount > 0 && <span>{list.viewsCount} views</span>}
                                 <LikeButton
@@ -264,7 +264,7 @@ function PublicList() {
                                 </span>
                             </div>
                             {shareUrl && (
-                                <div className="ml-4">
+                                <div className="w-full sm:w-auto flex justify-center sm:justify-end">
                                     <PublicShareButton shareUrl={shareUrl} listTitle={list.title} />
                                 </div>
                             )}
@@ -295,7 +295,7 @@ function ListItemPreview({ item }) {
     const config = posterConfig[item.category] || posterConfig.movies;
 
     return (
-        <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <div
                 style={{
                     width: `${config.width}px`,
@@ -310,7 +310,7 @@ function ListItemPreview({ item }) {
                     className={`${config.imageClass} w-full h-full`}
                 />
             </div>
-            <div className="flex-1 pt-1 min-w-0">
+            <div className="flex-1 pt-3 sm:pt-1 min-w-0 w-full">
                 <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 mb-1">
                     {item.title}
                 </h4>
@@ -338,7 +338,7 @@ function EmptySlot({ category }) {
     const config = slotConfig[category] || slotConfig.movies;
 
     return (
-        <div className="flex items-start gap-2 p-2 rounded-lg">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left p-2 rounded-lg">
             <div
                 style={{
                     width: `${config.width}px`,
@@ -347,7 +347,7 @@ function EmptySlot({ category }) {
                 }}
                 className="rounded shadow-md bg-gray-200 dark:bg-gray-700 flex-shrink-0"
             />
-            <div className="flex-1" />
+            <div className="flex-1 pt-3 sm:pt-1 w-full" />
         </div>
     );
 }

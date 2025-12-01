@@ -36,11 +36,11 @@ const ExportModal = ({ isOpen, onClose, listData }) => {
                 await writable.close();
                 return true;
             }
-        } catch {
+        } catch (error) {
             if (error?.name === 'AbortError' || error?.name === 'NotAllowedError') {
-                return false;
+                return null;
             }
-            return false;
+            return null;
         }
         return false;
     }
@@ -197,9 +197,9 @@ const ExportModal = ({ isOpen, onClose, listData }) => {
             const pdfBlob = doc.output('blob');
             const saved = await saveBlobWithPicker(pdfBlob, filename, 'application/pdf');
             hideLoading(loadingToast);
-            if (saved) {
+            if (saved === true) {
                 showSuccess('PDF saved successfully.');
-            } else {
+            } else if (saved === false) {
                 doc.save(filename);
             }
         } catch (error) {
@@ -319,9 +319,9 @@ const ExportModal = ({ isOpen, onClose, listData }) => {
             ) : false;
 
             hideLoading(loadingToast);
-            if (saved) {
+            if (saved === true) {
                 showSuccess(`${format} saved successfully.`);
-            } else {
+            } else if (saved === false) {
                 const link = document.createElement('a');
                 link.download = filename;
                 link.href = format.toLowerCase() === 'jpg'

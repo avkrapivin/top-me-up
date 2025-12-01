@@ -299,14 +299,14 @@ function ListBuilder() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
             <div className="max-w-4xl mx-auto px-4">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <button
                         onClick={() => navigate('/dashboard')}
                         className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                     >
                         ← Back to Dashboard
                     </button>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
                         {isEditMode && (
                         <>
                             <ShareButton 
