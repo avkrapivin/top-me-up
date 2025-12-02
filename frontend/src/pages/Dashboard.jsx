@@ -95,8 +95,6 @@ function Dashboard() {
                                     icon={<DashboardEmptyIcon />}
                                     title="No lists yet"
                                     message="Create your first list to get started! Build your top 10 lists of movies, music, or games."
-                                    actionLabel="Create New List"
-                                    onAction={() => navigate('/builder')}
                                 />
                             )}
 

@@ -12,24 +12,24 @@ import { useToast } from '../contexts/ToastContext';
 import EmptyState from '../components/UI/EmptyState';
 
 const NotFoundIcon = () => (
-    <svg 
-        className="w-24 h-24 text-gray-400 dark:text-gray-600" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        className="w-24 h-24 text-gray-400 dark:text-gray-600"
+        fill="none"
+        stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
     >
-        <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={1.5} 
-            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
         />
-        <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={1.5} 
-            d="M13.5 13.5L10.5 10.5M10.5 13.5l3-3" 
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M13.5 13.5L10.5 10.5M10.5 13.5l3-3"
             opacity="0.5"
         />
     </svg>
@@ -144,22 +144,22 @@ function PublicList() {
                             <Skeleton className="mb-4" width="150px" height="20px" />
                             <Skeleton width="80%" height="16px" />
                         </div>
-                        
+
                         {/* Items grid skeleton */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 max-w-xl mx-auto">
                             <div className="grid grid-cols-2 gap-4">
-                                {Array.from({ length: 10 }).map((_, i) => (
-                                    <div key={i} className="flex items-start gap-2">
-                                        <Skeleton width="64px" height="96px" rounded="rounded" />
-                                        <div className="flex-1">
-                                            <Skeleton className="mb-1" width="90%" height="14px" />
-                                            <Skeleton width="60%" height="12px" />
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <div key={`skeleton-${index}`} className="flex flex-col sm:flex-row items-center sm:items-start gap-3 p-2">
+                                        <Skeleton width="64px" height="96px" />
+                                        <div className="flex-1 w-full">
+                                            <Skeleton width="80%" height="16px" className="mb-2" />
+                                            <Skeleton width="60%" height="14px" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        
+
                         {/* Stats skeleton */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 max-w-xl mx-auto">
                             <div className="flex items-center justify-center gap-6">
@@ -235,14 +235,9 @@ function PublicList() {
 
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-xl mx-auto">
                         <div className="grid grid-cols-2 gap-4">
-                            {Array.from({ length: 10 }).map((_, index) => {
-                                const item = list.items?.[index];
-                                return item ? (
-                                    <ListItemPreview key={item._id || item.externalId} item={item} />
-                                ) : (
-                                    <EmptySlot key={`empty-${index}`} category={list.category} />
-                                );
-                            })}
+                            {list.items?.map((item, index) => (
+                                <ListItemPreview key={item._id || item.externalId || index} item={item} />
+                            ))}
                         </div>
                     </div>
 

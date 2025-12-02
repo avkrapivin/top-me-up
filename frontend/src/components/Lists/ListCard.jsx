@@ -88,14 +88,9 @@ function ListCard({ list, onDelete, showActions = false, linkTo, onLikeToggle, i
 
                 <div className="mb-4">
                     <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-                        {Array.from({ length: 10 }).map((_, index) => {
-                            const item = slots[index];
-                            return item ? (
-                                <ListItemPreview key={item._id || item.externalId} item={item} />
-                            ) : (
-                                <EmptySlot key={`empty-${index}`} category={list.category} />
-                            );
-                        })}
+                        {list.items?.map((item, index) => (
+                            <ListItemPreview key={item._id || item.externalId || index} item={item} />
+                        ))}
                     </div>
                 </div>
 
